@@ -9,7 +9,7 @@ Microservicio REST para gestionar reservas de espacios de coworking.
 - **Reservas sin solapamiento**: un espacio no puede tener dos reservas que se crucen en el tiempo.
 - **Notificación asíncrona**: al confirmar una reserva se notifica sin bloquear la respuesta.
 - **Reporte de ocupación cacheado**: métricas de ocupación por espacio servidas desde caché.
-- **Validación de pago externa**: llamada a un servicio de pagos protegida con circuit breaker (Resilience4j). El servicio de pago real no existe en este alcance; se simula con WireMock, configurable como cualquier servicio externo mediante `PAYMENT_SERVICE_URL`. WireMock no es solo una ayuda de desarrollo local: es el mock que sustituye al proveedor real en todo el alcance de esta prueba.
+- **Validación de pago externa**: llamada a un servicio de pagos protegida con circuit breaker (Resilience4j). El proveedor de pagos se simula con WireMock (`PAYMENT_SERVICE_URL`).
 
 ## Stack técnico
 
@@ -35,10 +35,10 @@ docker compose up
 
 | Servicio | URL |
 |----------|-----|
-| API | http://localhost:8080 |
-| Swagger UI | http://localhost:8080/swagger-ui.html |
-| OpenAPI (JSON) | http://localhost:8080/v3/api-docs |
-| Health | http://localhost:8080/actuator/health |
+| API | http://localhost:8080/coworking-service/api/v1 |
+| Swagger UI | http://localhost:8080/coworking-service/swagger-ui.html |
+| OpenAPI (JSON) | http://localhost:8080/coworking-service/v3/api-docs |
+| Health | http://localhost:8080/coworking-service/actuator/health |
 | WireMock | http://localhost:8081 |
 | PostgreSQL | `localhost:5433` (db, usuario y contraseña: `coworking`) |
 
