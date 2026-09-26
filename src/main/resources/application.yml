@@ -1,8 +1,26 @@
+server:
+  servlet:
+    context-path: /coworking-service
+  # public host behind a proxy
+  forward-headers-strategy: framework
+
 spring:
   application:
     name: coworking-booking-service
   profiles:
     active: dev
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  data:
+    web:
+      pageable:
+        max-page-size: 100
+
+logging:
+  pattern:
+    correlation: "[%X{correlationId:-}] "
 
 springdoc:
   swagger-ui:
