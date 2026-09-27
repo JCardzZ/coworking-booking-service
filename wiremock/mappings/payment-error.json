@@ -1,0 +1,9 @@
+{
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "urlPath": "/payments/validate",
+    "bodyPatterns": [ { "matchesJsonPath": "$[?(@.amount == 555)]" } ]
+  },
+  "response": { "status": 503, "body": "payment provider down" }
+}

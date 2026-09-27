@@ -1,0 +1,9 @@
+{
+  "priority": 10,
+  "request": { "method": "POST", "urlPath": "/payments/validate" },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": { "status": "APPROVED" }
+  }
+}
