@@ -2,14 +2,14 @@
 
 Microservicio REST para gestionar reservas de espacios de coworking.
 
-## Alcance funcional
+## Qué hace
 
-- **Espacios**: alta, consulta y administración de los espacios reservables.
-- **Usuarios con roles**: usuarios autenticados con JWT y permisos según su rol.
-- **Reservas sin solapamiento**: un espacio no puede tener dos reservas que se crucen en el tiempo.
-- **Notificación asíncrona**: al confirmar una reserva se notifica sin bloquear la respuesta.
-- **Reporte de ocupación cacheado**: métricas de ocupación por espacio servidas desde caché.
-- **Validación de pago externa**: llamada a un servicio de pagos protegida con circuit breaker (Resilience4j). El proveedor de pagos se simula con WireMock (`PAYMENT_SERVICE_URL`).
+- CRUD de espacios (salas, escritorios, oficinas privadas).
+- Registro y login con JWT. Hay roles ADMIN y USER, y los permisos de cada rol se pueden cambiar por API.
+- Reservas sin solapamiento: un espacio no se puede reservar dos veces en el mismo horario. Cada usuario ve y gestiona las suyas, el admin ve todas.
+- Confirmación con pago: se valida contra un proveedor externo (simulado con WireMock) protegido con circuit breaker.
+- Al confirmar una reserva se manda una notificación en segundo plano.
+- Reporte de ocupación por espacio y rango de fechas, cacheado.
 
 ## Stack técnico
 
@@ -58,7 +58,7 @@ WireMock simula el proveedor de pagos según el importe de la reserva (`POST /re
 | 555 | 503 | 202, sigue `PENDING_PAYMENT` (cuenta como fallo) |
 | 333 | tarda 3 s | 202 al superar el timeout de 2 s |
 
-Con 5 fallos seguidos el circuito se abre durante 30 s: las confirmaciones responden 202 al instante sin llamar al proveedor, y su estado se ve en `/actuator/circuitbreakers` y en `/actuator/health`.
+Si el proveedor falla 5 veces seguidas, el circuito se abre 30 s. Mientras está abierto, `confirm` responde 202 al instante sin llamar al proveedor. El estado se puede ver en `/actuator/circuitbreakers` y en `/actuator/health`.
 
 ### Desarrollo local
 
@@ -78,10 +78,13 @@ Hook de git (una sola vez): `git config core.hooksPath .githooks`. Bloquea el `g
 ./gradlew build
 ```
 
-Los tests levantan su propio PostgreSQL efímero con Testcontainers (requiere Docker).
+Los tests levantan su propio PostgreSQL con Testcontainers, así que hace falta Docker encendido.
 
-- **Unitarios** (Mockito): reglas de negocio de espacios, usuarios, roles y reservas.
-- **Integración** (`*IT`, `@SpringBootTest` + Testcontainers): `PaymentConfirmationIT` levanta PostgreSQL y WireMock en contenedores (con los mismos mappings de `wiremock/`) y recorre la confirmación por HTTP con JWT real: pago aprobado, rechazado, proveedor lento, el circuito que se abre tras 5 fallos y la notificación asíncrona tras confirmar. `OccupancyReportIT` comprueba el cálculo del reporte, que se cachea y que se refresca al confirmar o cancelar. `ReservationConcurrencyIT` lanza 20 reservas simultáneas del mismo horario: solo una responde 201, las otras 19 reciben 409 y en la base queda una sola fila; además, dos reservas contiguas lanzadas a la vez se aceptan las dos.
+- Unitarios con Mockito para las reglas de negocio de espacios, usuarios, roles, reservas y el reporte.
+- De integración (`*IT`), con la app completa, JWT real y PostgreSQL + WireMock en contenedores (usan los mismos mappings de `wiremock/`):
+  - `PaymentConfirmationIT`: pago aprobado, rechazado, proveedor lento, el circuito abriéndose tras 5 fallos y la notificación asíncrona.
+  - `ReservationConcurrencyIT`: 20 reservas al mismo tiempo para el mismo horario. Una sola gana (201), las otras 19 reciben 409 y en la base queda una fila. También revisa que dos reservas seguidas (9-10 y 10-11) enviadas a la vez pasen las dos.
+  - `OccupancyReportIT`: el cálculo del reporte, que se cachea y que se actualiza al confirmar o cancelar.
 
 ## Arquitectura
 
@@ -105,14 +108,18 @@ com.cowork.booking
 │   ├── controller/
 │   ├── service/
 │   ├── repository/
-│   ├── model/        # entidad JPA (@Entity)
+│   ├── model/        # entidad JPA y estados (patrón State)
 │   ├── dto/
-│   └── mapper/
+│   ├── mapper/
+│   ├── client/       # cliente del proveedor de pagos, con circuit breaker
+│   └── event/        # eventos de dominio (ReservationConfirmedEvent)
+├── notification/     # escucha eventos de reservas y notifica de forma asíncrona
+├── report/           # reporte de ocupación cacheado
 ├── common/           # excepciones de negocio y @ControllerAdvice (transversal)
 └── config/           # @ConfigurationProperties, seguridad, OpenAPI (transversal)
 ```
 
-Organización por dominio (package by feature): cada dominio mantiene el flujo `controller → service → repository` sin saltos.
+Cada dominio sigue el flujo `controller → service → repository`, sin saltarse capas.
 
 ```
 src/main/resources
@@ -121,21 +128,47 @@ src/main/resources
 └── application-prod.yml  # valores desde variables de entorno
 ```
 
-## Decisiones de diseño y trade-offs
+## Decisiones y trade-offs
 
-- **Swagger UI accesible también con el perfil `prod`**: se deja expuesto para que el evaluador pueda explorar y probar la API con `docker compose up`. En un despliegue real se restringiría a nivel de infraestructura (red interna o API Gateway), no desactivándolo desde el código de la aplicación.
-- **Paquetes por dominio en vez de por capa**: se gana cohesión (cada dominio agrupa todo lo que necesita), dominios aislados entre sí y más fáciles de extraer a otro servicio si hiciera falta. A cambio, las subcarpetas `controller/service/repository/dto/mapper` se repiten en cada dominio.
-- **RBAC dinámico**: los roles se crean y editan por API (`/admin/roles`); los permisos son un catálogo fijo porque el código los comprueba (`@PreAuthorize("hasAuthority('SPACE_WRITE')")`). El JWT solo identifica al usuario: sus permisos y su estado se leen de la base en cada petición (con caché que se invalida al cambiar un rol o bloquear una cuenta), así los cambios aplican al instante sin esperar a que caduque el token. El rol ADMIN no puede perder `USER_MANAGE` ni `RBAC_MANAGE`, para que nadie quede fuera de la administración.
-- **Reservas sin solapamiento**: la regla se comprueba en el servicio (error claro) y además en PostgreSQL con una restricción `EXCLUDE USING gist` sobre `tstzrange(start_at, end_at)`, que impide dobles reservas incluso con peticiones simultáneas. Los rangos son semiabiertos `[inicio, fin)`, así que se permiten reservas contiguas.
-- **Patrón State (GoF)**: cada estado de la reserva (`PENDING_PAYMENT`, `CONFIRMED`, `CANCELLED`) decide qué transiciones permite; una transición inválida responde 409 sin `if/else` repartidos por el servicio.
-- **Idempotency-Key**: obligatoria al crear reservas; reenviar la misma clave devuelve la reserva original en vez de duplicarla.
-- **Pago con circuit breaker (Resilience4j)**: la confirmación llama al proveedor fuera de cualquier transacción, para no tener una conexión a la base ocupada mientras se espera la respuesta, y solo abre una transacción corta para marcarla `CONFIRMED`. Si el proveedor falla, tarda más de 2 s o el circuito está abierto, el fallback deja la reserva en `PENDING_PAYMENT` y responde 202 para reintentarla después; un rechazo del pago no es un fallo del proveedor y responde 422. El indicador del circuito se muestra en `/actuator/health`, pero no lo pone en DOWN: un proveedor externo caído no debe hacer que la plataforma reinicie la app.
-- **Notificación asíncrona con eventos de dominio (Observer)**: al confirmar, el servicio publica `ReservationConfirmedEvent` y no sabe quién lo escucha. `ReservationNotificationListener` lo recibe con `@TransactionalEventListener(AFTER_COMMIT)` + `@Async`: solo notifica si la confirmación quedó guardada y no retrasa la respuesta. El envío es un log (mock); cambiarlo por email o una cola no toca el código de reservas. El pool se configura en `spring.task.execution` y conserva el correlation id en los logs del hilo asíncrono. Trade-off: si la app cae entre el commit y el envío, la notificación se pierde; para garantizarla haría falta un outbox transaccional.
-- **Reporte de ocupación con caché**: `GET /reports/occupancy?from&to[&spaceId]` calcula en una sola consulta SQL, para todos los espacios, las horas de reservas `CONFIRMED` dentro del rango (recortando las que cruzan los bordes) sobre 24 h por día en UTC. Solo cuentan las confirmadas: una pendiente de pago puede no pagarse nunca. El resultado se guarda con `@Cacheable` y se invalida con `@CacheEvict` al confirmar o cancelar una reserva y al modificar un espacio. El cache manager es transaccional (`TransactionAwareCacheManagerProxy`), así la invalidación ocurre tras el commit y un reporte leído justo antes no vuelve a cachear datos viejos. Trade-off: la caché es en memoria de cada instancia; con varias réplicas haría falta Redis o similar.
-- **Credenciales de evaluación**: el admin inicial se crea al arrancar desde `ADMIN_EMAIL`/`ADMIN_PASSWORD`, y `JWT_SECRET` firma los tokens. Los valores del README, `.env.example` y `docker-compose.yml` son solo para evaluación; en un despliegue real se sustituyen por secretos gestionados (vault o secretos del orquestador).
+### Paquetes por dominio
+Preferí agrupar por dominio (`space`, `user`, `reservation`...) y no por capa. Cada dominio tiene todo lo suyo junto y, si algún día hay que sacarlo a otro servicio, es más fácil. Lo malo es que las carpetas `controller/service/repository/...` se repiten en cada uno.
 
-_Resto pendiente de completar._
+### Roles y permisos dinámicos
+Los roles se crean y se editan por API (`/admin/roles`). Los permisos sí son un catálogo fijo, porque el código los revisa en cada endpoint con `@PreAuthorize`. El JWT solo dice quién es el usuario: sus permisos y si está bloqueado se leen de la base en cada petición (con caché). Así, si cambio el rol de alguien o lo bloqueo, aplica al momento sin esperar a que venza el token. Al rol ADMIN no se le pueden quitar `USER_MANAGE` ni `RBAC_MANAGE`, para no quedarse sin nadie que administre.
+
+### Reservas que no se pisan
+El servicio revisa el solapamiento antes de guardar para dar un error claro, pero eso solo no alcanza con dos peticiones al mismo tiempo. Por eso la regla también está en PostgreSQL con un `EXCLUDE USING gist` sobre `tstzrange(start_at, end_at)`: si dos llegan juntas, la base deja pasar una y la otra recibe 409. No usé locks en la aplicación porque la base ya lo resuelve y funciona igual con varias instancias. El rango es `[inicio, fin)`, así que una reserva de 9 a 10 y otra de 10 a 11 conviven sin problema.
+
+### Patrón State
+Cada estado de la reserva (`PENDING_PAYMENT`, `CONFIRMED`, `CANCELLED`) sabe a qué estados puede pasar. Si se intenta algo que no toca, como confirmar una cancelada, responde 409, y el servicio no se llena de `if`.
+
+### Idempotency-Key
+Crear una reserva exige la cabecera `Idempotency-Key`. Si el cliente reintenta con la misma clave (por un timeout, por ejemplo), recibe la reserva que ya se creó en vez de una duplicada.
+
+### Pago con circuit breaker
+La llamada al proveedor de pagos se hace fuera de la transacción, para no tener una conexión a la base ocupada mientras esperamos una respuesta que puede tardar. Solo cuando el pago se aprueba se abre una transacción corta para pasarla a `CONFIRMED`. Si el proveedor falla, tarda más de 2 s o el circuito está abierto, la reserva se queda en `PENDING_PAYMENT`, se responde 202 y se puede reintentar después. Un pago rechazado no es culpa del proveedor, así que ahí respondo 422 y no cuenta como fallo del circuito. El estado del circuito aparece en `/actuator/health`, pero no lo pone en DOWN: no quiero que Render reinicie la app porque un tercero esté caído.
+
+### Notificación con eventos (Observer)
+Al confirmar, el servicio publica un `ReservationConfirmedEvent` y se olvida. `ReservationNotificationListener` lo escucha con `@TransactionalEventListener(AFTER_COMMIT)` y `@Async`: solo notifica si la confirmación de verdad quedó guardada y no hace esperar al usuario. Por ahora la "notificación" es un log. Cambiarla por un email o una cola no obliga a tocar nada de reservas. El pool de hilos se configura en `spring.task.execution` y el correlation id se mantiene en los logs del hilo asíncrono. El punto débil: si la app se cae justo entre el commit y el envío, esa notificación se pierde. Para garantizarla haría falta un outbox.
+
+### Reporte de ocupación con caché
+`GET /reports/occupancy?from=...&to=...` (con `spaceId` opcional) saca en una sola consulta las horas reservadas de cada espacio dentro del rango, recortando las reservas que empiezan antes o terminan después, y las divide entre 24 h por día (UTC). Solo cuento las `CONFIRMED`, porque una pendiente puede no pagarse nunca. El resultado se guarda con `@Cacheable` y se limpia con `@CacheEvict` cuando se confirma o cancela una reserva o cambia un espacio. El cache manager es transaccional: la limpieza espera al commit, así un reporte que se pida justo en medio no vuelve a guardar datos viejos. La caché es en memoria; con varias instancias habría que pasarla a Redis.
+
+### Swagger abierto en prod
+Lo dejé accesible para que se pueda probar la API sin montar nada. En un entorno real lo cerraría desde la infraestructura (red interna o gateway), no desde el código.
+
+### Credenciales
+El admin inicial se crea al arrancar con `ADMIN_EMAIL` y `ADMIN_PASSWORD`, y `JWT_SECRET` firma los tokens. Los valores que aparecen en este README, en `.env.example` y en `docker-compose.yml` son solo para la evaluación. En producción irían en un gestor de secretos.
 
 ## Fuera de alcance
 
-_Pendiente de completar._
+Dejé fuera a propósito:
+
+- Notificaciones reales (email, SMS, colas) y el outbox para no perder ninguna.
+- Un proveedor de pagos real. En Render no hay WireMock, así que ahí `confirm` siempre responde 202 y la reserva queda pendiente: es el fallback del circuit breaker, no un bug. El flujo completo del pago se ve con `docker compose up` o en los tests de integración.
+- Reintentar solos los pagos pendientes o hacer vencer las reservas sin pagar. Hoy se reintenta llamando otra vez a `confirm`.
+- Caché compartida entre instancias (Redis).
+- Refresh tokens. El token dura 1 h, aunque bloquear a un usuario o cambiarle el rol aplica al instante.
+- Horarios de apertura y zonas horarias por sede. El reporte asume 24 h en UTC.
+- Reembolsos al cancelar una reserva ya pagada.
+- Rate limiting; eso lo dejaría al gateway.
