@@ -1,0 +1,40 @@
+sequenceDiagram
+    autonumber
+    actor U as Usuario
+    participant API as API
+    participant R as Reservas
+    participant DB as PostgreSQL
+    participant P as Pagos
+    participant PSP as Proveedor de pagos
+    participant N as Notificación
+
+    U->>API: login
+    API-->>U: token JWT
+
+    U->>API: crear reserva con Idempotency-Key
+    API->>R: crear
+    R->>DB: insert, la base rechaza solapes
+    R-->>U: 201 pendiente de pago, o 409 si choca con otra
+
+    U->>API: confirmar con método de pago
+    API->>R: confirmar, sin transacción abierta
+    R->>P: cobrar
+    alt circuito abierto
+        P-->>R: no disponible, ni se llama al proveedor
+    else circuito cerrado
+        P->>PSP: validar pago con Idempotency-Key
+        PSP-->>P: aprobado o rechazado
+        Note over P,PSP: si responde 5xx se reintenta una vez con la misma clave
+    end
+    P->>DB: guarda el intento con la tarjeta enmascarada
+    P-->>R: resultado
+
+    alt aprobado
+        R->>DB: transacción corta, pasa a CONFIRMED
+        R-)N: evento después del commit
+        R-->>U: 200 confirmada
+    else rechazado
+        R-->>U: 422 con el motivo
+    else proveedor caído o lento
+        R-->>U: 202 sigue pendiente y se puede reintentar
+    end
