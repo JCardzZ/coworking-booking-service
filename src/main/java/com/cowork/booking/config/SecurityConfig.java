@@ -7,16 +7,15 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
-/** Stateless JWT resource server; role rules live on the endpoints with @PreAuthorize. */
+/** Stateless JWT resource server; permission rules live on the endpoints with @PreAuthorize. */
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationConverter jwtAuthenticationConverter,
+    SecurityFilterChain securityFilterChain(HttpSecurity http, PermissionJwtConverter permissionJwtConverter,
                                             ProblemSecurityHandler problemHandler) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -24,10 +23,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(AppConstants.Security.PUBLIC_PATHS.toArray(String[]::new)).permitAll()
                         .requestMatchers(AppConstants.Security.ADMIN_PATHS.toArray(String[]::new))
-                        .hasRole(AppConstants.Security.ADMIN_ROLE)
+                        .hasAuthority(AppConstants.Permissions.METRICS_READ)
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(permissionJwtConverter))
                         .authenticationEntryPoint(problemHandler)
                         .accessDeniedHandler(problemHandler))
                 .exceptionHandling(exceptions -> exceptions

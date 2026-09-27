@@ -6,8 +6,6 @@ import com.cowork.booking.user.dto.UserResponse;
 import com.cowork.booking.user.mapper.UserMapper;
 import com.cowork.booking.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,13 +18,9 @@ public class UserService {
     private final UserMapper userMapper;
 
     public UserResponse findById(Long id) {
-        return userRepository.findById(id)
+        return userRepository.findWithRoleById(id)
                 .map(userMapper::toResponse)
                 .orElseThrow(() -> new ResourceNotFoundException(Messages.User.RESOURCE_TYPE, id,
                         Messages.User.NOT_FOUND.formatted(id)));
-    }
-
-    public Page<UserResponse> findAll(Pageable pageable) {
-        return userRepository.findAll(pageable).map(userMapper::toResponse);
     }
 }

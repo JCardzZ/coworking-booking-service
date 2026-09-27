@@ -16,7 +16,7 @@ import java.io.IOException;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-/** Reuses or generates {@code X-Correlation-Id}: MDC, response header and error {@code traceId}. Runs before security. */
+/** Reuses or generates X-Correlation-Id and adds it to logs, the response and error bodies. */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class CorrelationIdFilter extends OncePerRequestFilter {

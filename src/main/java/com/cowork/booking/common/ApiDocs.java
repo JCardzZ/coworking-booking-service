@@ -12,6 +12,7 @@ public final class ApiDocs {
         public static final String SPACES = "Spaces";
         public static final String AUTH = "Auth";
         public static final String USERS = "Users";
+        public static final String ADMIN = "Admin";
         public static final String RESERVATIONS = "Reservations";
 
         private Tags() {

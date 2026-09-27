@@ -62,7 +62,8 @@ public class OpenApiConfig {
                 .tags(List.of(
                         new Tag().name(Tags.SPACES).description("Gestión de espacios de coworking"),
                         new Tag().name(Tags.AUTH).description("Registro e inicio de sesión (JWT)"),
-                        new Tag().name(Tags.USERS).description("Perfil propio y listado de usuarios (ADMIN)")));
+                        new Tag().name(Tags.USERS).description("Perfil del usuario autenticado"),
+                        new Tag().name(Tags.ADMIN).description("Administración de usuarios, roles y permisos (RBAC)")));
     }
 
     /** Adds 401/403 (secured operations) and 500 to every operation. */

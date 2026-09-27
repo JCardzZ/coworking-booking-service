@@ -16,11 +16,11 @@ public class AuditLogAspect {
 
     @AfterReturning("@annotation(audited)")
     public void success(Audited audited) {
-        AUDIT.info(Audit.LOG_SUCCESS, audited.value(), CurrentUser.email(), CurrentUser.roles());
+        AUDIT.info(Audit.LOG_SUCCESS, audited.value(), CurrentUser.email(), CurrentUser.role());
     }
 
     @AfterThrowing(pointcut = "@annotation(audited)", throwing = "ex")
     public void failure(Audited audited, Exception ex) {
-        AUDIT.warn(Audit.LOG_FAILURE, audited.value(), CurrentUser.email(), CurrentUser.roles(), ex.getClass().getSimpleName());
+        AUDIT.warn(Audit.LOG_FAILURE, audited.value(), CurrentUser.email(), CurrentUser.role(), ex.getClass().getSimpleName());
     }
 }

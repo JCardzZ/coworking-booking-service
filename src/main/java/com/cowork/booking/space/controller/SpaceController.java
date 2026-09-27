@@ -6,7 +6,7 @@ import com.cowork.booking.common.ApiErrorSchemas.NotFoundProblem;
 import com.cowork.booking.common.ApiErrorSchemas.ValidationProblem;
 import com.cowork.booking.common.AppConstants.Api;
 import com.cowork.booking.common.AppConstants.Paging;
-import com.cowork.booking.common.AppConstants.Security;
+import com.cowork.booking.common.AppConstants.Permissions;
 import com.cowork.booking.space.dto.SpaceFilter;
 import com.cowork.booking.space.dto.SpaceRequest;
 import com.cowork.booking.space.dto.SpaceResponse;
@@ -48,6 +48,7 @@ public class SpaceController {
     private final SpaceService spaceService;
 
     @GetMapping
+    @PreAuthorize(Permissions.HAS_SPACE_READ)
     @Operation(operationId = "listSpaces", summary = "Listar espacios",
             description = "Lista paginada de espacios activos. Filtros opcionales combinados con AND. "
                     + "Página por defecto 20 (máximo 100), ordenada por nombre.")
@@ -61,6 +62,7 @@ public class SpaceController {
     }
 
     @GetMapping(Api.SPACE_ID)
+    @PreAuthorize(Permissions.HAS_SPACE_READ)
     @Operation(operationId = "getSpaceById", summary = "Obtener un espacio",
             description = "Devuelve un espacio activo. Los desactivados se informan como no encontrados.")
     @ApiResponse(responseCode = "200", description = "El espacio")
@@ -71,9 +73,9 @@ public class SpaceController {
     }
 
     @PostMapping
-    @PreAuthorize(Security.HAS_ROLE_ADMIN)
+    @PreAuthorize(Permissions.HAS_SPACE_WRITE)
     @Operation(operationId = "createSpace", summary = "Crear un espacio",
-            description = "Requiere rol ADMIN. El nombre debe ser único entre los espacios activos (sin distinguir mayúsculas).")
+            description = "Requiere permiso SPACE_WRITE. El nombre debe ser único entre los espacios activos (sin distinguir mayúsculas).")
     @ApiResponse(responseCode = "201", description = "Espacio creado",
             headers = @Header(name = HttpHeaders.LOCATION, description = "URL del nuevo espacio", schema = @Schema(type = "string")))
     @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos",
@@ -88,9 +90,9 @@ public class SpaceController {
     }
 
     @PutMapping(Api.SPACE_ID)
-    @PreAuthorize(Security.HAS_ROLE_ADMIN)
+    @PreAuthorize(Permissions.HAS_SPACE_WRITE)
     @Operation(operationId = "updateSpace", summary = "Reemplazar un espacio",
-            description = "Requiere rol ADMIN. Reemplaza todos los datos editables de un espacio activo.")
+            description = "Requiere permiso SPACE_WRITE. Reemplaza todos los datos editables de un espacio activo.")
     @ApiResponse(responseCode = "200", description = "Espacio actualizado")
     @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos",
             content = @Content(mediaType = ApiDocs.PROBLEM_JSON, schema = @Schema(implementation = ValidationProblem.class)))
@@ -104,9 +106,9 @@ public class SpaceController {
     }
 
     @DeleteMapping(Api.SPACE_ID)
-    @PreAuthorize(Security.HAS_ROLE_ADMIN)
+    @PreAuthorize(Permissions.HAS_SPACE_WRITE)
     @Operation(operationId = "deleteSpace", summary = "Desactivar un espacio",
-            description = "Requiere rol ADMIN. Borrado lógico: deja de aparecer y libera su nombre, pero se conserva para reservas y reportes.")
+            description = "Requiere permiso SPACE_WRITE. Borrado lógico: deja de aparecer y libera su nombre, pero se conserva para reservas y reportes.")
     @ApiResponse(responseCode = "204", description = "Espacio desactivado")
     @ApiResponse(responseCode = "404", description = "Espacio no encontrado",
             content = @Content(mediaType = ApiDocs.PROBLEM_JSON, schema = @Schema(implementation = NotFoundProblem.class)))
