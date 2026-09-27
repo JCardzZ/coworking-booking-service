@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+# Blocks the push when the build (compile + tests) fails. Needs Docker for Testcontainers.
+# Emergency bypass: git push --no-verify
+echo "pre-push: running ./gradlew build ..."
+if ! ./gradlew build --quiet; then
+  echo "pre-push: build failed, push aborted"
+  exit 1
+fi

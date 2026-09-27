@@ -54,6 +54,8 @@ docker compose up -d postgres                     # solo la base de datos, en lo
 set -a; source .env; set +a && ./gradlew bootRun  # perfil "dev" por defecto
 ```
 
+Hook de git (una sola vez): `git config core.hooksPath .githooks`. Bloquea el `git push` si `./gradlew build` falla. Requiere Docker encendido (los tests usan Testcontainers); en una emergencia se omite con `git push --no-verify`.
+
 `application-dev.yml` no tiene valores por defecto: las variables de `.env` son obligatorias. Spring no lee `.env` por sí solo; en IntelliJ se carga con el plugin **EnvFile** (Settings → Plugins → buscar "EnvFile"), activándolo en Run/Debug Configurations → pestaña EnvFile → agregar `.env`.
 
 ### Tests
