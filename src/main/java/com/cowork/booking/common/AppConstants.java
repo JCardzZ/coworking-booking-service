@@ -37,6 +37,9 @@ public final class AppConstants {
         public static final String CANCEL = "/cancel";
         public static final String CONFIRM = "/confirm";
 
+        public static final String REPORTS = "/reports";
+        public static final String OCCUPANCY = "/occupancy";
+
         public static final String IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
 
         private Api() {
@@ -94,12 +97,14 @@ public final class AppConstants {
         public static final String RESERVATION_READ_OWN = "RESERVATION_READ_OWN";
         public static final String RESERVATION_READ_ALL = "RESERVATION_READ_ALL";
         public static final String RESERVATION_MANAGE_ALL = "RESERVATION_MANAGE_ALL";
+        public static final String REPORT_READ = "REPORT_READ";
 
         public static final String HAS_SPACE_READ = "hasAuthority('" + SPACE_READ + "')";
         public static final String HAS_SPACE_WRITE = "hasAuthority('" + SPACE_WRITE + "')";
         public static final String HAS_USER_MANAGE = "hasAuthority('" + USER_MANAGE + "')";
         public static final String HAS_RBAC_MANAGE = "hasAuthority('" + RBAC_MANAGE + "')";
         public static final String HAS_RESERVATION_CREATE = "hasAuthority('" + RESERVATION_CREATE + "')";
+        public static final String HAS_REPORT_READ = "hasAuthority('" + REPORT_READ + "')";
         public static final String CAN_READ_RESERVATIONS =
                 "hasAnyAuthority('" + RESERVATION_READ_OWN + "', '" + RESERVATION_READ_ALL + "')";
         public static final String CAN_CONFIRM_RESERVATIONS =
@@ -116,6 +121,7 @@ public final class AppConstants {
 
     public static final class Caches {
         public static final String USER_AUTHORIZATION = "user-authorization";
+        public static final String OCCUPANCY_REPORT = "occupancy-report";
 
         private Caches() {
         }
@@ -271,6 +277,7 @@ public final class AppConstants {
             public static final String END_AFTER_START = "endAt debe ser posterior a startAt";
             public static final String IDEMPOTENCY_KEY_FORMAT = "debe tener entre 8 y 64 caracteres: letras, números y guiones";
             public static final String ROLE_NAME_FORMAT = "debe empezar por letra y contener solo letras, números y guiones bajos";
+        public static final String REPORT_RANGE = "to debe ser igual o posterior a from y el rango no puede superar 366 días";
 
             private Validation() {
             }
@@ -375,6 +382,7 @@ public final class AppConstants {
         public static final int RESERVATION_MAX_HOURS = 12;
         public static final int IDEMPOTENCY_KEY_MAX = 64;
         public static final String IDEMPOTENCY_KEY_PATTERN = "[A-Za-z0-9-]{8,64}";
+        public static final int REPORT_MAX_DAYS = 366;
 
         private Limits() {
         }

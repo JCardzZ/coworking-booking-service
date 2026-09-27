@@ -75,7 +75,8 @@ public class OpenApiConfig {
                         new Tag().name(Tags.AUTH).description("Registro e inicio de sesión (JWT)"),
                         new Tag().name(Tags.USERS).description("Perfil del usuario autenticado"),
                         new Tag().name(Tags.ADMIN).description("Administración de usuarios, roles y permisos (RBAC)"),
-                        new Tag().name(Tags.RESERVATIONS).description("Reservas de espacios")));
+                        new Tag().name(Tags.RESERVATIONS).description("Reservas de espacios"),
+                        new Tag().name(Tags.REPORTS).description("Reportes de ocupación")));
     }
 
     /** Adds 401/403 (secured operations) and 500 to every operation. */
