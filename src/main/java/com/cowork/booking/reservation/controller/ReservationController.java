@@ -10,6 +10,8 @@ import com.cowork.booking.common.AppConstants.Limits;
 import com.cowork.booking.common.AppConstants.Messages.Validation;
 import com.cowork.booking.common.AppConstants.Paging;
 import com.cowork.booking.common.AppConstants.Permissions;
+import com.cowork.booking.payment.dto.PaymentAttemptResponse;
+import com.cowork.booking.reservation.dto.ConfirmReservationRequest;
 import com.cowork.booking.reservation.dto.CreateReservationRequest;
 import com.cowork.booking.reservation.dto.ReservationFilter;
 import com.cowork.booking.reservation.dto.ReservationResponse;
@@ -42,6 +44,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequestMapping(Api.RESERVATIONS)
@@ -112,23 +115,38 @@ public class ReservationController {
     @PostMapping(Api.RESERVATION_ID + Api.CONFIRM)
     @PreAuthorize(Permissions.CAN_CONFIRM_RESERVATIONS)
     @Operation(operationId = "confirmReservation", summary = "Confirmar y pagar una reserva",
-            description = "Valida el pago contra el servicio externo, protegido con circuit breaker. Si el pago se aprueba "
-                    + "pasa a CONFIRMED (200). Si el servicio de pagos no responde o el circuito está abierto, la reserva "
-                    + "sigue en PENDING_PAYMENT (202) y se puede reintentar más tarde.")
+            description = "Manda el método de pago (tarjeta tokenizada o transferencia) al proveedor externo. "
+                    + "Si lo aprueba, la reserva pasa a CONFIRMED. Si el proveedor no responde o el circuito está "
+                    + "abierto, sigue en PENDING_PAYMENT y se puede reintentar; reintentar con el mismo método no cobra dos veces.")
     @ApiResponse(responseCode = "200", description = "Pago aprobado, reserva confirmada")
     @ApiResponse(responseCode = "202", description = "Servicio de pagos no disponible: sigue en PENDING_PAYMENT")
+    @ApiResponse(responseCode = "400", description = "Método de pago ausente o con formato inválido",
+            content = @Content(mediaType = ApiDocs.PROBLEM_JSON, schema = @Schema(implementation = ValidationProblem.class)))
     @ApiResponse(responseCode = "404", description = "Reserva no encontrada",
             content = @Content(mediaType = ApiDocs.PROBLEM_JSON, schema = @Schema(implementation = NotFoundProblem.class)))
     @ApiResponse(responseCode = "409", description = "La reserva no está pendiente de pago",
             content = @Content(mediaType = ApiDocs.PROBLEM_JSON, schema = @Schema(implementation = ConflictProblem.class)))
-    @ApiResponse(responseCode = "422", description = "Pago rechazado: sigue en PENDING_PAYMENT",
+    @ApiResponse(responseCode = "422", description = "Pago rechazado (fondos insuficientes, tarjeta vencida, método no aceptado): sigue en PENDING_PAYMENT",
             content = @Content(mediaType = ApiDocs.PROBLEM_JSON, schema = @Schema(implementation = Problem.class)))
     public ResponseEntity<ReservationResponse> confirm(@Parameter(description = "Id de la reserva", example = "10")
-                                                       @PathVariable Long reservationId) {
-        ReservationService.ConfirmResult result = reservationService.confirm(reservationId);
+                                                       @PathVariable Long reservationId,
+                                                       @Valid @RequestBody ConfirmReservationRequest request) {
+        ReservationService.ConfirmResult result = reservationService.confirm(reservationId, request.paymentMethod());
         return result.confirmed()
                 ? ResponseEntity.ok(result.reservation())
                 : ResponseEntity.accepted().body(result.reservation());
+    }
+
+    @GetMapping(Api.RESERVATION_ID + Api.PAYMENTS)
+    @PreAuthorize(Permissions.CAN_READ_RESERVATIONS)
+    @Operation(operationId = "listReservationPayments", summary = "Intentos de pago de una reserva",
+            description = "Cada llamada al proveedor queda registrada, aprobada o no. El método de pago se muestra enmascarado.")
+    @ApiResponse(responseCode = "200", description = "Intentos, del más antiguo al más reciente")
+    @ApiResponse(responseCode = "404", description = "Reserva no encontrada",
+            content = @Content(mediaType = ApiDocs.PROBLEM_JSON, schema = @Schema(implementation = NotFoundProblem.class)))
+    public List<PaymentAttemptResponse> paymentAttempts(@Parameter(description = "Id de la reserva", example = "10")
+                                                        @PathVariable Long reservationId) {
+        return reservationService.paymentAttempts(reservationId);
     }
 
     @PostMapping(Api.RESERVATION_ID + Api.CANCEL)

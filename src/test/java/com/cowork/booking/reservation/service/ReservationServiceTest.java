@@ -5,9 +5,11 @@ import com.cowork.booking.common.AppConstants.Permissions;
 import com.cowork.booking.common.BusinessRuleException;
 import com.cowork.booking.common.ResourceNotFoundException;
 import com.cowork.booking.common.UnprocessableOperationException;
-import com.cowork.booking.reservation.client.PaymentClient;
-import com.cowork.booking.reservation.client.PaymentRequest;
-import com.cowork.booking.reservation.client.PaymentResult;
+import com.cowork.booking.payment.dto.CardPayment;
+import com.cowork.booking.payment.dto.PaymentMethod;
+import com.cowork.booking.payment.model.DeclineReason;
+import com.cowork.booking.payment.model.PaymentResult;
+import com.cowork.booking.payment.service.PaymentService;
 import com.cowork.booking.reservation.dto.CreateReservationRequest;
 import com.cowork.booking.reservation.dto.ReservationResponse;
 import com.cowork.booking.reservation.event.ReservationConfirmedEvent;
@@ -70,7 +72,7 @@ class ReservationServiceTest {
     @Mock
     private UserRepository userRepository;
     @Mock
-    private PaymentClient paymentClient;
+    private PaymentService paymentService;
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
@@ -81,7 +83,7 @@ class ReservationServiceTest {
     @BeforeEach
     void setUp() {
         service = new ReservationService(reservationRepository, spaceRepository, userRepository, new ReservationMapper(),
-                paymentClient, new TransactionTemplate(mock(PlatformTransactionManager.class)), eventPublisher,
+                paymentService, new TransactionTemplate(mock(PlatformTransactionManager.class)), eventPublisher,
                 Clock.fixed(NOW, ZoneOffset.UTC));
         space = new Space("Sala Andes", SpaceType.MEETING_ROOM, 8, "Piso 2", new BigDecimal("25.00"));
         ReflectionTestUtils.setField(space, "id", 1L);
@@ -213,17 +215,20 @@ class ReservationServiceTest {
         assertThat(service.cancel(10L).status()).isEqualTo(ReservationStatus.CANCELLED);
     }
 
+    private static final PaymentMethod CARD = new CardPayment("tok_visa_4242");
+
     @Test
     void approvedPaymentConfirmsTheReservation() {
         Reservation reservation = reservation(ana);
         when(reservationRepository.findWithDetailsById(10L)).thenReturn(Optional.of(reservation));
-        when(paymentClient.validate(any(PaymentRequest.class))).thenReturn(PaymentResult.APPROVED);
+        when(paymentService.charge(reservation, CARD)).thenReturn(PaymentResult.approved("pay_abc123"));
         when(reservationRepository.saveAndFlush(reservation)).thenReturn(reservation);
 
-        ReservationService.ConfirmResult result = service.confirm(10L);
+        ReservationService.ConfirmResult result = service.confirm(10L, CARD);
 
         assertThat(result.confirmed()).isTrue();
         assertThat(result.reservation().status()).isEqualTo(ReservationStatus.CONFIRMED);
+        assertThat(result.reservation().paymentReference()).isEqualTo("pay_abc123");
         verify(eventPublisher).publishEvent(new ReservationConfirmedEvent(10L, ana.getEmail(), space.getName(),
                 START, END, new BigDecimal("37.50")));
     }
@@ -232,9 +237,9 @@ class ReservationServiceTest {
     void unavailablePaymentKeepsReservationPending() {
         Reservation reservation = reservation(ana);
         when(reservationRepository.findWithDetailsById(10L)).thenReturn(Optional.of(reservation));
-        when(paymentClient.validate(any(PaymentRequest.class))).thenReturn(PaymentResult.UNAVAILABLE);
+        when(paymentService.charge(reservation, CARD)).thenReturn(PaymentResult.unavailable());
 
-        ReservationService.ConfirmResult result = service.confirm(10L);
+        ReservationService.ConfirmResult result = service.confirm(10L, CARD);
 
         assertThat(result.confirmed()).isFalse();
         assertThat(result.reservation().status()).isEqualTo(ReservationStatus.PENDING_PAYMENT);
@@ -246,11 +251,11 @@ class ReservationServiceTest {
     void declinedPaymentIsRejectedAndStaysPending() {
         Reservation reservation = reservation(ana);
         when(reservationRepository.findWithDetailsById(10L)).thenReturn(Optional.of(reservation));
-        when(paymentClient.validate(any(PaymentRequest.class))).thenReturn(PaymentResult.DECLINED);
+        when(paymentService.charge(reservation, CARD)).thenReturn(PaymentResult.declined(DeclineReason.INSUFFICIENT_FUNDS));
 
-        assertThatThrownBy(() -> service.confirm(10L))
+        assertThatThrownBy(() -> service.confirm(10L, CARD))
                 .isInstanceOf(UnprocessableOperationException.class)
-                .extracting("code").isEqualTo(ErrorCodes.PAYMENT_DECLINED);
+                .extracting("code").isEqualTo(ErrorCodes.PAYMENT_INSUFFICIENT_FUNDS);
         assertThat(reservation.getStatus()).isEqualTo(ReservationStatus.PENDING_PAYMENT);
         verifyNoInteractions(eventPublisher);
     }
@@ -261,10 +266,10 @@ class ReservationServiceTest {
         reservation.cancel(NOW);
         when(reservationRepository.findWithDetailsById(10L)).thenReturn(Optional.of(reservation));
 
-        assertThatThrownBy(() -> service.confirm(10L))
+        assertThatThrownBy(() -> service.confirm(10L, CARD))
                 .isInstanceOf(BusinessRuleException.class)
                 .extracting("code").isEqualTo(ErrorCodes.INVALID_RESERVATION_STATE);
-        verify(paymentClient, never()).validate(any());
+        verify(paymentService, never()).charge(any(), any());
     }
 
     private Reservation reservation(User owner) {

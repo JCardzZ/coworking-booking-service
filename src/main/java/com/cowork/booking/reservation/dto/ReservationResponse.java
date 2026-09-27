@@ -18,6 +18,7 @@ public record ReservationResponse(
         @Schema(example = "PENDING_PAYMENT") ReservationStatus status,
         @Schema(description = "Tarifa por hora x duración", example = "50.00") BigDecimal totalAmount,
         @Schema(example = Examples.TIMESTAMP) Instant createdAt,
-        @Schema(description = "Solo si está cancelada") Instant cancelledAt
+        @Schema(description = "Solo si está cancelada") Instant cancelledAt,
+        @Schema(description = "Referencia del pago, solo si está confirmada", example = "pay_8f3k2m9x1q7w") String paymentReference
 ) {
 }
