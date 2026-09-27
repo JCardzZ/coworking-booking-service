@@ -10,6 +10,7 @@ public final class ApiDocs {
 
     public static final class Tags {
         public static final String SPACES = "Spaces";
+        public static final String AUTH = "Auth";
         public static final String USERS = "Users";
         public static final String RESERVATIONS = "Reservations";
 
