@@ -56,3 +56,7 @@ springdoc:
   swagger-ui:
     tags-sorter: alpha
     operations-sorter: method
+    # keep the JWT after a page reload and open "Try it out" by default
+    persist-authorization: true
+    try-it-out-enabled: true
+    display-request-duration: true

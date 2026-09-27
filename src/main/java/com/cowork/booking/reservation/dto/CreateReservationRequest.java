@@ -17,11 +17,11 @@ public record CreateReservationRequest(
         @NotNull(message = REQUIRED) @Positive(message = POSITIVE)
         Long spaceId,
 
-        @Schema(description = "Inicio (ISO-8601 con zona)", example = "2026-10-01T09:00:00Z")
+        @Schema(description = "Inicio (ISO-8601 con zona)", example = "2027-01-15T09:00:00Z")
         @NotNull(message = REQUIRED)
         Instant startAt,
 
-        @Schema(description = "Fin, exclusivo: otra reserva puede empezar justo a esta hora", example = "2026-10-01T11:00:00Z")
+        @Schema(description = "Fin, exclusivo: otra reserva puede empezar justo a esta hora", example = "2027-01-15T11:00:00Z")
         @NotNull(message = REQUIRED)
         Instant endAt
 ) {
