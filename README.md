@@ -128,6 +128,30 @@ src/main/resources
 └── application-prod.yml  # valores desde variables de entorno
 ```
 
+## Por qué usé cada pieza
+
+**Spring Data JPA, `@Query` y Specifications.** Las relaciones son `@ManyToOne(fetch = LAZY)` (reserva → espacio, reserva → usuario, usuario → rol), así nada se carga si no se usa. Donde sí hace falta, como al listar reservas con su espacio y su usuario, uso `@EntityGraph` para traer todo en una sola consulta y evitar el N+1. Los filtros opcionales de los listados (tipo y capacidad en espacios; espacio, estado, fechas y usuario en reservas) van con Specifications y el metamodelo de JPA, en vez de armar un método de repositorio por cada combinación. Para lo que JPQL no expresa bien uso `@Query` nativa: el reporte de ocupación, que necesita `LEAST/GREATEST` sobre fechas. Las entidades tienen `@Version`: si dos personas editan lo mismo a la vez, la segunda recibe 409 en vez de pisar el cambio.
+
+**Spring Security con JWT.** La API no guarda sesión, así que un token firmado encaja bien. Lo emite la propia app (HS256, con `spring-boot-starter-oauth2-resource-server` para validarlo) y dura 1 h. La autorización va por permisos (`@PreAuthorize("hasAuthority(...)")`) y no por nombre de rol, así un rol nuevo funciona sin tocar código.
+
+**Bean Validation y `@RestControllerAdvice`.** Los DTOs de entrada se validan con anotaciones (`@NotBlank`, `@Positive`, `@AssertTrue` para que el fin sea posterior al inicio…) y los mensajes salen en español. Todos los errores pasan por `GlobalExceptionHandler` y salen en el mismo formato (ProblemDetail, RFC 9457) con un `code` estable y el `traceId` de la petición. Las excepciones de negocio son propias y cada una tiene su código HTTP: `ResourceNotFoundException` → 404, `BusinessRuleException` → 409 (solapamiento, transición inválida, nombre repetido) y `UnprocessableOperationException` → 422 (fecha pasada, pago rechazado). No hice una clase por cada error: el `code` (`RESERVATION_OVERLAP`, `PAYMENT_DECLINED`…) ya distingue el caso para el cliente.
+
+**`@Transactional`.** Los servicios son `readOnly` por defecto y solo las escrituras abren una transacción normal. Crear una reserva revisa el solapamiento y guarda dentro de la misma transacción, y la constraint de la base cierra el hueco que queda entre dos peticiones simultáneas. Confirmar es distinto: la llamada al pago va fuera de la transacción (más abajo explico por qué).
+
+**Actuator.** Expongo `health`, `info`, `metrics` y `circuitbreakers`. Health es público pero sin detalle; el detalle (base, disco, circuito) y el resto solo los ve un admin. `info` muestra la versión y el commit desplegado, y el pipeline lo usa para confirmar que Render está sirviendo la imagen nueva.
+
+**Perfiles y `@ConfigurationProperties`.** `application.yml` tiene lo común, `application-dev.yml` lo local y `application-prod.yml` lee todo de variables de entorno. La configuración propia (JWT, admin inicial, URL y timeouts del proveedor de pagos) está en records con `@ConfigurationProperties` + `@Validated`: si falta un valor, la app no arranca y dice cuál. No hay `@Value` sueltos.
+
+**Caché.** Solo el reporte de ocupación y los permisos de cada usuario, que se leen mucho y cambian poco. Uso la caché en memoria de Spring porque para una instancia alcanza; abajo detallo cómo se invalida.
+
+**`@Async` y eventos.** La notificación no tiene por qué hacer esperar al usuario, así que va en otro hilo a partir de un evento de dominio.
+
+**OpenAPI.** springdoc genera la documentación desde los controllers. Cada endpoint dice qué permiso pide y qué errores puede devolver, y Swagger UI trae el botón Authorize para probar con el token.
+
+**Tests.** Mockito para las reglas de negocio, que corren en milisegundos, y `@SpringBootTest` con Testcontainers para lo que un mock no puede demostrar: la constraint de Postgres con peticiones simultáneas, el circuit breaker contra un WireMock real y la caché del reporte. Uso Postgres de verdad y no H2 porque el `EXCLUDE USING gist` no existe en H2.
+
+**Docker.** El `Dockerfile` es multi-stage: compila con el JDK y la imagen final solo lleva el JRE y corre con un usuario sin privilegios. `docker compose up` levanta Postgres, WireMock y la app con healthchecks, y la app no arranca hasta que los otros dos están sanos.
+
 ## Decisiones y trade-offs
 
 ### Paquetes por dominio
@@ -140,7 +164,12 @@ Los roles se crean y se editan por API (`/admin/roles`). Los permisos sí son un
 El servicio revisa el solapamiento antes de guardar para dar un error claro, pero eso solo no alcanza con dos peticiones al mismo tiempo. Por eso la regla también está en PostgreSQL con un `EXCLUDE USING gist` sobre `tstzrange(start_at, end_at)`: si dos llegan juntas, la base deja pasar una y la otra recibe 409. No usé locks en la aplicación porque la base ya lo resuelve y funciona igual con varias instancias. El rango es `[inicio, fin)`, así que una reserva de 9 a 10 y otra de 10 a 11 conviven sin problema.
 
 ### Patrón State
-Cada estado de la reserva (`PENDING_PAYMENT`, `CONFIRMED`, `CANCELLED`) sabe a qué estados puede pasar. Si se intenta algo que no toca, como confirmar una cancelada, responde 409, y el servicio no se llena de `if`.
+El problema: una reserva solo puede confirmarse si está pendiente de pago, y cancelarse si no está ya cancelada. Con `if/else` o un `switch` sobre el estado, esa regla termina repetida en `confirm`, en `cancel` y en cualquier operación nueva, y cada estado nuevo obliga a revisar todos esos `switch`.
+
+Con State, cada estado (`PENDING_PAYMENT`, `CONFIRMED`, `CANCELLED`) es una clase que dice qué transiciones permite; la interfaz es sealed, así que el compilador conoce todos los estados. La entidad solo le pide al estado actual que haga la transición y, si no se puede, sale una excepción que termina en 409. Agregar un estado `COMPLETED` sería una clase más, sin tocar el servicio. Además lo uso antes de cobrar: si la reserva no se puede confirmar, ni siquiera se llama al proveedor de pagos.
+
+### Patrón Observer
+Confirmar una reserva dispara cosas que no son parte de confirmar: hoy la notificación, mañana quizá una factura o una métrica. Si el servicio las llamara una por una, cada nueva reacción tocaría `ReservationService`. Con eventos, el servicio publica `ReservationConfirmedEvent` y cada interesado se suscribe por su cuenta.
 
 ### Idempotency-Key
 Crear una reserva exige la cabecera `Idempotency-Key`. Si el cliente reintenta con la misma clave (por un timeout, por ejemplo), recibe la reserva que ya se creó en vez de una duplicada.
@@ -160,7 +189,7 @@ Lo dejé accesible para que se pueda probar la API sin montar nada. En un entorn
 ### Credenciales
 El admin inicial se crea al arrancar con `ADMIN_EMAIL` y `ADMIN_PASSWORD`, y `JWT_SECRET` firma los tokens. Los valores que aparecen en este README, en `.env.example` y en `docker-compose.yml` son solo para la evaluación. En producción irían en un gestor de secretos.
 
-## Fuera de alcance
+## Fuera de alcance y qué haría con más tiempo
 
 Dejé fuera a propósito:
 
@@ -172,3 +201,12 @@ Dejé fuera a propósito:
 - Horarios de apertura y zonas horarias por sede. El reporte asume 24 h en UTC.
 - Reembolsos al cancelar una reserva ya pagada.
 - Rate limiting; eso lo dejaría al gateway.
+
+Con más tiempo, en este orden:
+
+1. Outbox transaccional y un envío de correo real (o una cola), para no perder notificaciones.
+2. Estado `COMPLETED` con un job que cierre las reservas ya terminadas, y otro que reintente o venza las pendientes de pago.
+3. Strategy para las tarifas (precio distinto por tipo de espacio, horario o duración). Hoy es tarifa × horas.
+4. Redis para la caché, para poder correr varias instancias.
+5. Refresh tokens y lista de tokens revocados.
+6. Pruebas de carga sobre la creación de reservas y tests de contrato del cliente de pagos.
