@@ -80,6 +80,9 @@ Hook de git (una sola vez): `git config core.hooksPath .githooks`. Bloquea el `g
 
 Los tests levantan su propio PostgreSQL efímero con Testcontainers (requiere Docker).
 
+- **Unitarios** (Mockito): reglas de negocio de espacios, usuarios, roles y reservas.
+- **Integración** (`*IT`, `@SpringBootTest` + Testcontainers): `PaymentConfirmationIT` levanta PostgreSQL y WireMock en contenedores (con los mismos mappings de `wiremock/`) y recorre la confirmación por HTTP con JWT real: pago aprobado, rechazado, proveedor lento, y el circuito que se abre tras 5 fallos.
+
 ## Arquitectura
 
 ```
