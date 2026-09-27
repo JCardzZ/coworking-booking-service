@@ -7,6 +7,9 @@ server:
 spring:
   application:
     name: coworking-booking-service
+  config:
+    # build.version and build.time for the startup banner
+    import: optional:classpath:META-INF/build-info.properties
   profiles:
     active: dev
   jpa:
