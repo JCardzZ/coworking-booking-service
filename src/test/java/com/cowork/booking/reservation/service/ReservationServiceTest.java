@@ -10,6 +10,7 @@ import com.cowork.booking.reservation.client.PaymentRequest;
 import com.cowork.booking.reservation.client.PaymentResult;
 import com.cowork.booking.reservation.dto.CreateReservationRequest;
 import com.cowork.booking.reservation.dto.ReservationResponse;
+import com.cowork.booking.reservation.event.ReservationConfirmedEvent;
 import com.cowork.booking.reservation.mapper.ReservationMapper;
 import com.cowork.booking.reservation.model.Reservation;
 import com.cowork.booking.reservation.model.ReservationStatus;
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -50,6 +52,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -68,6 +71,8 @@ class ReservationServiceTest {
     private UserRepository userRepository;
     @Mock
     private PaymentClient paymentClient;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     private ReservationService service;
     private Space space;
@@ -76,7 +81,8 @@ class ReservationServiceTest {
     @BeforeEach
     void setUp() {
         service = new ReservationService(reservationRepository, spaceRepository, userRepository, new ReservationMapper(),
-                paymentClient, new TransactionTemplate(mock(PlatformTransactionManager.class)), Clock.fixed(NOW, ZoneOffset.UTC));
+                paymentClient, new TransactionTemplate(mock(PlatformTransactionManager.class)), eventPublisher,
+                Clock.fixed(NOW, ZoneOffset.UTC));
         space = new Space("Sala Andes", SpaceType.MEETING_ROOM, 8, "Piso 2", new BigDecimal("25.00"));
         ReflectionTestUtils.setField(space, "id", 1L);
         ana = user(2L, "ana@coworking.com", role("USER"));
@@ -218,6 +224,8 @@ class ReservationServiceTest {
 
         assertThat(result.confirmed()).isTrue();
         assertThat(result.reservation().status()).isEqualTo(ReservationStatus.CONFIRMED);
+        verify(eventPublisher).publishEvent(new ReservationConfirmedEvent(10L, ana.getEmail(), space.getName(),
+                START, END, new BigDecimal("37.50")));
     }
 
     @Test
@@ -231,6 +239,7 @@ class ReservationServiceTest {
         assertThat(result.confirmed()).isFalse();
         assertThat(result.reservation().status()).isEqualTo(ReservationStatus.PENDING_PAYMENT);
         verify(reservationRepository, never()).saveAndFlush(any());
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -243,6 +252,7 @@ class ReservationServiceTest {
                 .isInstanceOf(UnprocessableOperationException.class)
                 .extracting("code").isEqualTo(ErrorCodes.PAYMENT_DECLINED);
         assertThat(reservation.getStatus()).isEqualTo(ReservationStatus.PENDING_PAYMENT);
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test

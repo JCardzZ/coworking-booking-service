@@ -12,6 +12,17 @@ spring:
     import: optional:classpath:META-INF/build-info.properties
   profiles:
     active: dev
+  task:
+    execution:
+      thread-name-prefix: async-
+      pool:
+        core-size: 2
+        max-size: 4
+        queue-capacity: 100
+      # let pending notifications finish on shutdown
+      shutdown:
+        await-termination: true
+        await-termination-period: 10s
   jpa:
     open-in-view: false
     hibernate:

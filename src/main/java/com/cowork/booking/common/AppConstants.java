@@ -326,6 +326,14 @@ public final class AppConstants {
             }
         }
 
+        public static final class Notification {
+            public static final String LOG_RESERVATION_CONFIRMED =
+                    "Notificación enviada a {}: reserva {} confirmada en '{}' de {} a {}, importe {}";
+
+            private Notification() {
+            }
+        }
+
         public static final class Admin {
             public static final String SELF_STATUS_CHANGE = "Un administrador no puede cambiar el estado de su propia cuenta";
 

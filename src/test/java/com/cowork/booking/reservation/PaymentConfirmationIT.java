@@ -16,9 +16,12 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -27,9 +30,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
+import java.util.function.BooleanSupplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -42,6 +47,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(TestcontainersConfig.class)
+@ExtendWith(OutputCaptureExtension.class)
 class PaymentConfirmationIT {
 
     private static final String RESERVATIONS = Api.BASE_PATH + Api.RESERVATIONS;
@@ -76,6 +82,18 @@ class PaymentConfirmationIT {
 
         assertThat(statusOf(reservationId)).isEqualTo(ReservationStatus.CONFIRMED);
         confirm(reservationId).andExpect(status().isConflict());
+    }
+
+    @Test
+    void confirmationIsNotifiedAsynchronously(CapturedOutput output) throws Exception {
+        Long reservationId = reservationAt(20);
+
+        confirm(reservationId).andExpect(status().isOk());
+
+        String notification = "reserva " + reservationId + " confirmada";
+        waitUntil(() -> output.getOut().contains(notification));
+        String line = output.getOut().lines().filter(l -> l.contains(notification)).findFirst().orElseThrow();
+        assertThat(line).containsPattern("\\[\\s*async-\\d+]");
     }
 
     @Test
@@ -161,6 +179,14 @@ class PaymentConfirmationIT {
     private Long idOf(ResultActions result) throws Exception {
         JsonNode body = objectMapper.readTree(result.andReturn().getResponse().getContentAsString());
         return body.get("id").asLong();
+    }
+
+    private static void waitUntil(BooleanSupplier condition) throws InterruptedException {
+        Instant deadline = Instant.now().plus(Duration.ofSeconds(5));
+        while (!condition.getAsBoolean() && Instant.now().isBefore(deadline)) {
+            Thread.sleep(50);
+        }
+        assertThat(condition.getAsBoolean()).isTrue();
     }
 
     private String bearer() {

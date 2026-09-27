@@ -16,6 +16,7 @@ import com.cowork.booking.reservation.client.PaymentResult;
 import com.cowork.booking.reservation.dto.CreateReservationRequest;
 import com.cowork.booking.reservation.dto.ReservationFilter;
 import com.cowork.booking.reservation.dto.ReservationResponse;
+import com.cowork.booking.reservation.event.ReservationConfirmedEvent;
 import com.cowork.booking.reservation.mapper.ReservationMapper;
 import com.cowork.booking.reservation.model.Reservation;
 import com.cowork.booking.reservation.repository.ReservationRepository;
@@ -25,6 +26,7 @@ import com.cowork.booking.space.repository.SpaceRepository;
 import com.cowork.booking.user.model.User;
 import com.cowork.booking.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -54,6 +56,7 @@ public class ReservationService {
     private final ReservationMapper reservationMapper;
     private final PaymentClient paymentClient;
     private final TransactionTemplate transactionTemplate;
+    private final ApplicationEventPublisher eventPublisher;
     private final Clock clock;
 
     // created=false when it's a replay of the same Idempotency-Key
@@ -125,7 +128,9 @@ public class ReservationService {
         return transactionTemplate.execute(tx -> {
             Reservation reservation = reservationRepository.findWithDetailsById(id).orElseThrow(() -> notFound(id));
             reservation.confirm();
-            return reservationMapper.toResponse(reservationRepository.saveAndFlush(reservation));
+            Reservation confirmed = reservationRepository.saveAndFlush(reservation);
+            eventPublisher.publishEvent(ReservationConfirmedEvent.of(confirmed));
+            return reservationMapper.toResponse(confirmed);
         });
     }
 
