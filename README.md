@@ -49,14 +49,26 @@ La app corre con el perfil `prod` y construye su imagen desde el `Dockerfile` de
 
 Administrador inicial: `manuel.admin@coworking.com` / `Admin123!`. El token se obtiene con `POST /auth/login` y se envía como `Authorization: Bearer <token>`.
 
-WireMock simula el proveedor de pagos según el importe de la reserva (`POST /reservations/{id}/confirm`):
+Para confirmar una reserva se manda el método de pago:
 
-| Importe | Respuesta del proveedor | Resultado |
-|---------|-------------------------|-----------|
-| cualquier otro | `APPROVED` | 200, reserva `CONFIRMED` |
-| >= 1000 | `DECLINED` | 422, sigue `PENDING_PAYMENT` |
-| 555 | 503 | 202, sigue `PENDING_PAYMENT` (cuenta como fallo) |
-| 333 | tarda 3 s | 202 al superar el timeout de 2 s |
+```json
+POST /reservations/{id}/confirm
+{ "paymentMethod": { "type": "CARD", "token": "tok_visa_4242" } }
+{ "paymentMethod": { "type": "BANK_TRANSFER", "accountNumber": "SV62CENR00000000000000700025" } }
+```
+
+WireMock hace de proveedor de pagos y responde según lo que recibe:
+
+| Caso | Respuesta del proveedor | Resultado |
+|------|-------------------------|-----------|
+| cualquier tarjeta o cuenta válida | `APPROVED` | 200, reserva `CONFIRMED` con `paymentReference` |
+| token `tok_insufficient_funds` | `DECLINED` | 422 `PAYMENT_INSUFFICIENT_FUNDS` |
+| token `tok_expired` | `DECLINED` | 422 `PAYMENT_CARD_EXPIRED` |
+| cuenta que empieza por `SV00` | `DECLINED` | 422 `PAYMENT_METHOD_INVALID` |
+| reserva de importe 555 | 503 | se reintenta una vez; luego 202 y sigue `PENDING_PAYMENT` |
+| reserva de importe 333 | tarda 3 s | 202 al pasar el timeout de 2 s |
+
+Cada intento queda guardado y se puede ver en `GET /reservations/{id}/payments`.
 
 Si el proveedor falla 5 veces seguidas, el circuito se abre 30 s. Mientras está abierto, `confirm` responde 202 al instante sin llamar al proveedor. El estado se puede ver en `/actuator/circuitbreakers` y en `/actuator/health`.
 
@@ -82,7 +94,7 @@ Los tests levantan su propio PostgreSQL con Testcontainers, así que hace falta 
 
 - Unitarios con Mockito para las reglas de negocio de espacios, usuarios, roles, reservas y el reporte.
 - De integración (`*IT`), con la app completa, JWT real y PostgreSQL + WireMock en contenedores (usan los mismos mappings de `wiremock/`):
-  - `PaymentConfirmationIT`: pago aprobado, rechazado, proveedor lento, el circuito abriéndose tras 5 fallos y la notificación asíncrona.
+  - `PaymentConfirmationIT`: tarjeta y transferencia aprobadas, cada motivo de rechazo, pagar con otra tarjeta después de un rechazo, validación del método de pago, proveedor lento, el reintento con la misma `Idempotency-Key` (revisando lo que llegó a WireMock), el circuito abriéndose y la notificación asíncrona.
   - `ReservationConcurrencyIT`: 20 reservas al mismo tiempo para el mismo horario. Una sola gana (201), las otras 19 reciben 409 y en la base queda una fila. También revisa que dos reservas seguidas (9-10 y 10-11) enviadas a la vez pasen las dos.
   - `OccupancyReportIT`: el cálculo del reporte, que se cachea y que se actualiza al confirmar o cancelar.
 
@@ -111,8 +123,8 @@ com.cowork.booking
 │   ├── model/        # entidad JPA y estados (patrón State)
 │   ├── dto/
 │   ├── mapper/
-│   ├── client/       # cliente del proveedor de pagos, con circuit breaker
 │   └── event/        # eventos de dominio (ReservationConfirmedEvent)
+├── payment/          # método de pago, cliente del proveedor (retry + circuit breaker) e historial de intentos
 ├── notification/     # escucha eventos de reservas y notifica de forma asíncrona
 ├── report/           # reporte de ocupación cacheado
 ├── common/           # excepciones de negocio y @ControllerAdvice (transversal)
@@ -176,6 +188,13 @@ Crear una reserva exige la cabecera `Idempotency-Key`. Si el cliente reintenta c
 
 ### Pago con circuit breaker
 La llamada al proveedor de pagos se hace fuera de la transacción, para no tener una conexión a la base ocupada mientras esperamos una respuesta que puede tardar. Solo cuando el pago se aprueba se abre una transacción corta para pasarla a `CONFIRMED`. Si el proveedor falla, tarda más de 2 s o el circuito está abierto, la reserva se queda en `PENDING_PAYMENT`, se responde 202 y se puede reintentar después. Un pago rechazado no es culpa del proveedor, así que ahí respondo 422 y no cuenta como fallo del circuito. El estado del circuito aparece en `/actuator/health`, pero no lo pone en DOWN: no quiero que Render reinicie la app porque un tercero esté caído.
+
+### Método de pago y reintentos
+`confirm` recibe el método de pago: una tarjeta ya tokenizada (nunca el número de la tarjeta) o una cuenta para transferencia. Es una interfaz sealed con un record por tipo, y Jackson elige cuál según el campo `type`. Así cada método tiene sus propias validaciones y agregar uno nuevo es agregar un record, sin tocar un `if` por tipo.
+
+Si el proveedor responde 5xx, lo reintento una vez (Resilience4j Retry, que envuelve al circuit breaker). Los timeouts no los reintento: ya costaron 2 s y el usuario esperaría el doble. Reintentar un cobro solo es seguro si el proveedor no cobra dos veces, así que cada llamada lleva un `Idempotency-Key` que sale de la reserva y del método de pago: el mismo cobro repetido lleva la misma clave, y pagar con otra tarjeta genera una nueva.
+
+Cada llamada al proveedor queda en `payment_attempts` (método enmascarado, resultado, motivo de rechazo, referencia y cuánto tardó), y se consulta con `GET /reservations/{id}/payments`. Sirve para soporte y auditoría: si alguien dice "me cobraron", ahí se ve qué pasó. El token o la cuenta nunca se guardan ni se loguean completos, solo los últimos 4 caracteres. También hay un contador `payments.attempts` por resultado y método en `/actuator/metrics`.
 
 ### Notificación con eventos (Observer)
 Al confirmar, el servicio publica un `ReservationConfirmedEvent` y se olvida. `ReservationNotificationListener` lo escucha con `@TransactionalEventListener(AFTER_COMMIT)` y `@Async`: solo notifica si la confirmación de verdad quedó guardada y no hace esperar al usuario. Por ahora la "notificación" es un log. Cambiarla por un email o una cola no obliga a tocar nada de reservas. El pool de hilos se configura en `spring.task.execution` y el correlation id se mantiene en los logs del hilo asíncrono. El punto débil: si la app se cae justo entre el commit y el envío, esa notificación se pierde. Para garantizarla haría falta un outbox.

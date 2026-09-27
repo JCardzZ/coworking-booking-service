@@ -1,9 +1,14 @@
 {
   "priority": 10,
-  "request": { "method": "POST", "urlPath": "/payments/validate" },
+  "request": {
+    "method": "POST",
+    "urlPath": "/payments/validate",
+    "headers": { "Idempotency-Key": { "matches": ".+" } }
+  },
   "response": {
     "status": 200,
     "headers": { "Content-Type": "application/json" },
-    "jsonBody": { "status": "APPROVED" }
+    "jsonBody": { "status": "APPROVED", "reference": "pay_{{randomValue length=12 type='ALPHANUMERIC' lowercase=true}}" },
+    "transformers": ["response-template"]
   }
 }

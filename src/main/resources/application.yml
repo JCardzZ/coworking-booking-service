@@ -42,7 +42,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info, metrics, circuitbreakers
+        include: health, info, metrics, circuitbreakers, retries
   endpoint:
     health:
       # status is public; component details (db, disk) only for ADMIN
@@ -84,6 +84,14 @@ resilience4j:
         register-health-indicator: true
         # an open circuit is shown in health details but must not mark the app DOWN (Render would restart it)
         allow-health-indicator-to-fail: false
+  retry:
+    instances:
+      payment:
+        # one extra try, only for 5xx: a timeout already cost 2s and retrying it would make the user wait twice
+        max-attempts: 2
+        wait-duration: 300ms
+        retry-exceptions:
+          - org.springframework.web.client.HttpServerErrorException
 
 logging:
   pattern:

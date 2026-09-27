@@ -26,7 +26,7 @@ class ReservationStateTest {
     @Test
     void pendingCanBeConfirmedAndThenCancelled() {
         Reservation reservation = reservation();
-        reservation.confirm();
+        reservation.confirm("pay_abc123");
         assertThat(reservation.getStatus()).isEqualTo(ReservationStatus.CONFIRMED);
 
         reservation.cancel(NOW);
@@ -37,9 +37,9 @@ class ReservationStateTest {
     @Test
     void confirmedCannotBeConfirmedAgain() {
         Reservation reservation = reservation();
-        reservation.confirm();
+        reservation.confirm("pay_abc123");
 
-        assertThatThrownBy(reservation::confirm)
+        assertThatThrownBy(() -> reservation.confirm("pay_abc123"))
                 .isInstanceOf(BusinessRuleException.class)
                 .extracting("code").isEqualTo(ErrorCodes.INVALID_RESERVATION_STATE);
     }
@@ -49,7 +49,7 @@ class ReservationStateTest {
         Reservation reservation = reservation();
         reservation.cancel(NOW);
 
-        assertThatThrownBy(reservation::confirm).isInstanceOf(BusinessRuleException.class);
+        assertThatThrownBy(() -> reservation.confirm("pay_abc123")).isInstanceOf(BusinessRuleException.class);
         assertThatThrownBy(() -> reservation.cancel(NOW))
                 .isInstanceOf(BusinessRuleException.class)
                 .extracting("code").isEqualTo(ErrorCodes.INVALID_RESERVATION_STATE);

@@ -1,0 +1,13 @@
+{
+  "priority": 2,
+  "request": {
+    "method": "POST",
+    "urlPath": "/payments/validate",
+    "headers": { "Idempotency-Key": { "absent": true } }
+  },
+  "response": {
+    "status": 400,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": { "error": "Idempotency-Key header is required" }
+  }
+}

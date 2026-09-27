@@ -2,6 +2,9 @@ package com.cowork.booking.support;
 
 import com.cowork.booking.common.AppConstants.Api;
 import com.cowork.booking.config.SecurityProperties;
+import com.cowork.booking.payment.dto.CardPayment;
+import com.cowork.booking.payment.dto.PaymentMethod;
+import com.cowork.booking.reservation.dto.ConfirmReservationRequest;
 import com.cowork.booking.reservation.dto.CreateReservationRequest;
 import com.cowork.booking.space.dto.SpaceRequest;
 import com.cowork.booking.space.model.SpaceType;
@@ -77,9 +80,21 @@ public abstract class IntegrationTest {
         return idOf(reserve(adminToken, spaceId, startAt, endAt).andExpect(status().isCreated()));
     }
 
+    protected static final String APPROVED_CARD = "tok_visa_4242";
+
     protected ResultActions confirm(Long reservationId) throws Exception {
+        return confirm(reservationId, new CardPayment(APPROVED_CARD));
+    }
+
+    protected ResultActions confirm(Long reservationId, PaymentMethod paymentMethod) throws Exception {
+        return confirmWithBody(reservationId, objectMapper.writeValueAsString(new ConfirmReservationRequest(paymentMethod)));
+    }
+
+    protected ResultActions confirmWithBody(Long reservationId, String body) throws Exception {
         return mockMvc.perform(post(RESERVATIONS + "/{id}" + Api.CONFIRM, reservationId)
-                .header(HttpHeaders.AUTHORIZATION, bearer(adminToken)));
+                .header(HttpHeaders.AUTHORIZATION, bearer(adminToken))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body));
     }
 
     protected ResultActions cancel(Long reservationId) throws Exception {

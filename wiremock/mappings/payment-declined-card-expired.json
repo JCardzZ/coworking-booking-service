@@ -1,0 +1,13 @@
+{
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "urlPath": "/payments/validate",
+    "bodyPatterns": [ { "matchesJsonPath": "$.paymentMethod[?(@.token == 'tok_expired')]" } ]
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": { "status": "DECLINED", "reason": "CARD_EXPIRED" }
+  }
+}
