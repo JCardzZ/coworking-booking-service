@@ -81,7 +81,7 @@ Hook de git (una sola vez): `git config core.hooksPath .githooks`. Bloquea el `g
 Los tests levantan su propio PostgreSQL efímero con Testcontainers (requiere Docker).
 
 - **Unitarios** (Mockito): reglas de negocio de espacios, usuarios, roles y reservas.
-- **Integración** (`*IT`, `@SpringBootTest` + Testcontainers): `PaymentConfirmationIT` levanta PostgreSQL y WireMock en contenedores (con los mismos mappings de `wiremock/`) y recorre la confirmación por HTTP con JWT real: pago aprobado, rechazado, proveedor lento, y el circuito que se abre tras 5 fallos.
+- **Integración** (`*IT`, `@SpringBootTest` + Testcontainers): `PaymentConfirmationIT` levanta PostgreSQL y WireMock en contenedores (con los mismos mappings de `wiremock/`) y recorre la confirmación por HTTP con JWT real: pago aprobado, rechazado, proveedor lento, el circuito que se abre tras 5 fallos y la notificación asíncrona tras confirmar.
 
 ## Arquitectura
 
@@ -130,6 +130,7 @@ src/main/resources
 - **Patrón State (GoF)**: cada estado de la reserva (`PENDING_PAYMENT`, `CONFIRMED`, `CANCELLED`) decide qué transiciones permite; una transición inválida responde 409 sin `if/else` repartidos por el servicio.
 - **Idempotency-Key**: obligatoria al crear reservas; reenviar la misma clave devuelve la reserva original en vez de duplicarla.
 - **Pago con circuit breaker (Resilience4j)**: la confirmación llama al proveedor fuera de cualquier transacción, para no tener una conexión a la base ocupada mientras se espera la respuesta, y solo abre una transacción corta para marcarla `CONFIRMED`. Si el proveedor falla, tarda más de 2 s o el circuito está abierto, el fallback deja la reserva en `PENDING_PAYMENT` y responde 202 para reintentarla después; un rechazo del pago no es un fallo del proveedor y responde 422. El indicador del circuito se muestra en `/actuator/health`, pero no lo pone en DOWN: un proveedor externo caído no debe hacer que la plataforma reinicie la app.
+- **Notificación asíncrona con eventos de dominio (Observer)**: al confirmar, el servicio publica `ReservationConfirmedEvent` y no sabe quién lo escucha. `ReservationNotificationListener` lo recibe con `@TransactionalEventListener(AFTER_COMMIT)` + `@Async`: solo notifica si la confirmación quedó guardada y no retrasa la respuesta. El envío es un log (mock); cambiarlo por email o una cola no toca el código de reservas. El pool se configura en `spring.task.execution` y conserva el correlation id en los logs del hilo asíncrono. Trade-off: si la app cae entre el commit y el envío, la notificación se pierde; para garantizarla haría falta un outbox transaccional.
 - **Credenciales de evaluación**: el admin inicial se crea al arrancar desde `ADMIN_EMAIL`/`ADMIN_PASSWORD`, y `JWT_SECRET` firma los tokens. Los valores del README, `.env.example` y `docker-compose.yml` son solo para evaluación; en un despliegue real se sustituyen por secretos gestionados (vault o secretos del orquestador).
 
 _Resto pendiente de completar._
