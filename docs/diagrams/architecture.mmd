@@ -1,0 +1,40 @@
+flowchart LR
+    subgraph clientes["Clientes"]
+        sw["Swagger UI"]
+        pm["Postman"]
+    end
+
+    subgraph render["Render"]
+        subgraph app["coworking-booking-service"]
+            sec["Seguridad<br/>JWT y permisos por rol"]
+            api["API REST"]
+            res["Reservas<br/>estados con patrón State"]
+            payc["Cliente de pagos<br/>retry y circuit breaker"]
+            evt[["Evento: reserva confirmada"]]
+            notif["Notificación<br/>en otro hilo"]
+            cache[("Caché<br/>reporte y permisos")]
+            act["Actuator"]
+        end
+        db[("PostgreSQL")]
+        mock["Proveedor de pagos<br/>WireMock"]
+    end
+
+    subgraph cicd["GitHub Actions"]
+        build["Build y tests"] --> publish["Imagen en GHCR"]
+        publish --> scan["Escaneo con Trivy"]
+        scan --> deploy["Deploy en Render"]
+        deploy --> verify["Verifica el commit desplegado"]
+    end
+
+    sw --> sec
+    pm --> sec
+    sec --> api
+    api --> res
+    api --> cache
+    res --> db
+    res --> payc
+    payc -->|"Idempotency-Key"| mock
+    res -.-> evt
+    evt -.-> notif
+    deploy --> app
+    verify --> act

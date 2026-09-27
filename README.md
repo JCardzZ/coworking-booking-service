@@ -100,6 +100,18 @@ Los tests levantan su propio PostgreSQL con Testcontainers, así que hace falta 
 
 ## Arquitectura
 
+Así se conectan las piezas y cómo llega cada cambio a producción:
+
+![Arquitectura y despliegue](docs/diagrams/architecture.png)
+
+Y esto es lo que pasa cuando alguien reserva y paga:
+
+![Flujo de reserva y pago](docs/diagrams/booking-flow.png)
+
+Fuente editable de ambos en `docs/diagrams/*.mmd` (Mermaid).
+
+Organización del código:
+
 ```
 com.cowork.booking
 ├── space/            # dominio: espacios reservables
