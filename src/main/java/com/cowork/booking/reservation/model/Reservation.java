@@ -68,6 +68,9 @@ public class Reservation extends AuditableEntity {
     @Column(name = "cancelled_at")
     private Instant cancelledAt;
 
+    @Column(name = "payment_reference")
+    private String paymentReference;
+
     @Version
     private long version;
 
@@ -82,8 +85,9 @@ public class Reservation extends AuditableEntity {
         this.status = ReservationStatus.PENDING_PAYMENT;
     }
 
-    public void confirm() {
+    public void confirm(String paymentReference) {
         this.status = status.state().confirm();
+        this.paymentReference = paymentReference;
     }
 
     // fail before charging anything if the reservation can't be confirmed anyway

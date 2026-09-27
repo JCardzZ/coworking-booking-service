@@ -11,9 +11,10 @@ import com.cowork.booking.common.BusinessRuleException;
 import com.cowork.booking.common.CurrentUser;
 import com.cowork.booking.common.ResourceNotFoundException;
 import com.cowork.booking.common.UnprocessableOperationException;
-import com.cowork.booking.reservation.client.PaymentClient;
-import com.cowork.booking.reservation.client.PaymentRequest;
-import com.cowork.booking.reservation.client.PaymentResult;
+import com.cowork.booking.payment.dto.PaymentAttemptResponse;
+import com.cowork.booking.payment.dto.PaymentMethod;
+import com.cowork.booking.payment.model.PaymentResult;
+import com.cowork.booking.payment.service.PaymentService;
 import com.cowork.booking.reservation.dto.CreateReservationRequest;
 import com.cowork.booking.reservation.dto.ReservationFilter;
 import com.cowork.booking.reservation.dto.ReservationResponse;
@@ -42,6 +43,7 @@ import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -56,7 +58,7 @@ public class ReservationService {
     private final SpaceRepository spaceRepository;
     private final UserRepository userRepository;
     private final ReservationMapper reservationMapper;
-    private final PaymentClient paymentClient;
+    private final PaymentService paymentService;
     private final TransactionTemplate transactionTemplate;
     private final ApplicationEventPublisher eventPublisher;
     private final Clock clock;
@@ -94,17 +96,21 @@ public class ReservationService {
     @Audited(Audit.RESERVATION_CONFIRM)
     @CacheEvict(cacheNames = Caches.OCCUPANCY_REPORT, allEntries = true)
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public ConfirmResult confirm(Long id) {
+    public ConfirmResult confirm(Long id, PaymentMethod paymentMethod) {
         Reservation reservation = getVisible(id, Permissions.RESERVATION_MANAGE_ALL);
         reservation.checkCanConfirm();
-        PaymentResult payment = paymentClient.validate(
-                new PaymentRequest(reservation.getId(), reservation.getUser().getId(), reservation.getTotalAmount()));
-        return switch (payment) {
-            case APPROVED -> new ConfirmResult(markConfirmed(id), true);
-            case DECLINED -> throw new UnprocessableOperationException(ErrorCodes.PAYMENT_DECLINED,
-                    Messages.Reservation.PAYMENT_DECLINED);
+        PaymentResult payment = paymentService.charge(reservation, paymentMethod);
+        return switch (payment.outcome()) {
+            case APPROVED -> new ConfirmResult(markConfirmed(id, payment.providerReference()), true);
+            case DECLINED -> throw new UnprocessableOperationException(payment.declineReason().errorCode(),
+                    payment.declineReason().message());
             case UNAVAILABLE -> new ConfirmResult(reservationMapper.toResponse(reservation), false);
         };
+    }
+
+    public List<PaymentAttemptResponse> paymentAttempts(Long id) {
+        getVisible(id, Permissions.RESERVATION_READ_ALL);
+        return paymentService.attemptsOf(id);
     }
 
     public Page<ReservationResponse> findAll(ReservationFilter filter, Pageable pageable) {
@@ -128,10 +134,10 @@ public class ReservationService {
         return reservationMapper.toResponse(reservationRepository.saveAndFlush(reservation));
     }
 
-    private ReservationResponse markConfirmed(Long id) {
+    private ReservationResponse markConfirmed(Long id, String paymentReference) {
         return transactionTemplate.execute(tx -> {
             Reservation reservation = reservationRepository.findWithDetailsById(id).orElseThrow(() -> notFound(id));
-            reservation.confirm();
+            reservation.confirm(paymentReference);
             Reservation confirmed = reservationRepository.saveAndFlush(reservation);
             eventPublisher.publishEvent(ReservationConfirmedEvent.of(confirmed));
             return reservationMapper.toResponse(confirmed);

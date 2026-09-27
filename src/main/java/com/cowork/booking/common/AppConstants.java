@@ -36,6 +36,7 @@ public final class AppConstants {
         public static final String RESERVATION_ID = "/{reservationId}";
         public static final String CANCEL = "/cancel";
         public static final String CONFIRM = "/confirm";
+        public static final String PAYMENTS = "/payments";
 
         public static final String REPORTS = "/reports";
         public static final String OCCUPANCY = "/occupancy";
@@ -80,7 +81,7 @@ public final class AppConstants {
                 Api.BASE_PATH + Api.AUTH + "/**");
 
         /** Operational data: only for administrators. */
-        public static final List<String> ADMIN_PATHS = List.of("/actuator/metrics/**", "/actuator/circuitbreakers/**");
+        public static final List<String> ADMIN_PATHS = List.of("/actuator/metrics/**", "/actuator/circuitbreakers/**", "/actuator/retries/**");
 
         private Security() {
         }
@@ -116,6 +117,17 @@ public final class AppConstants {
         public static final Set<String> ADMIN_LOCKED = Set.of(USER_MANAGE, RBAC_MANAGE);
 
         private Permissions() {
+        }
+    }
+
+    public static final class Payments {
+        public static final String CURRENCY = "USD";
+        public static final String IDEMPOTENCY_KEY_PREFIX = "rsv-";
+        public static final String METRIC_ATTEMPTS = "payments.attempts";
+        public static final String TAG_OUTCOME = "outcome";
+        public static final String TAG_METHOD = "method";
+
+        private Payments() {
         }
     }
 
@@ -183,6 +195,9 @@ public final class AppConstants {
         public static final String INVALID_RESERVATION_STATE = "INVALID_RESERVATION_STATE";
         public static final String IDEMPOTENCY_KEY_REUSED = "IDEMPOTENCY_KEY_REUSED";
         public static final String PAYMENT_DECLINED = "PAYMENT_DECLINED";
+        public static final String PAYMENT_INSUFFICIENT_FUNDS = "PAYMENT_INSUFFICIENT_FUNDS";
+        public static final String PAYMENT_CARD_EXPIRED = "PAYMENT_CARD_EXPIRED";
+        public static final String PAYMENT_METHOD_INVALID = "PAYMENT_METHOD_INVALID";
 
         private ErrorCodes() {
         }
@@ -276,6 +291,8 @@ public final class AppConstants {
             public static final String NOT_EMPTY = "debe tener al menos un elemento";
             public static final String END_AFTER_START = "endAt debe ser posterior a startAt";
             public static final String IDEMPOTENCY_KEY_FORMAT = "debe tener entre 8 y 64 caracteres: letras, números y guiones";
+            public static final String CARD_TOKEN_FORMAT = "debe ser un token del proveedor, p. ej. tok_visa_4242";
+            public static final String ACCOUNT_NUMBER_FORMAT = "debe ser un número de cuenta IBAN válido, p. ej. SV62CENR00000000000000700025";
             public static final String ROLE_NAME_FORMAT = "debe empezar por letra y contener solo letras, números y guiones bajos";
         public static final String REPORT_RANGE = "to debe ser igual o posterior a from y el rango no puede superar 366 días";
 
@@ -325,11 +342,21 @@ public final class AppConstants {
             public static final String IDEMPOTENCY_KEY_REUSED = "La Idempotency-Key ya se usó con otros datos de reserva";
             public static final String ACTION_CONFIRM = "confirmar";
             public static final String ACTION_CANCEL = "cancelar";
-            public static final String PAYMENT_DECLINED = "El pago fue rechazado; la reserva sigue pendiente de pago";
-            public static final String LOG_PAYMENT_UNAVAILABLE = "Payment service unavailable for reservation {}: {}";
             public static final String PERIOD_FIELD = "endAt";
 
             private Reservation() {
+            }
+        }
+
+        public static final class Payment {
+            public static final String DECLINED = "El pago fue rechazado; la reserva sigue pendiente de pago";
+            public static final String INSUFFICIENT_FUNDS = "Pago rechazado por fondos insuficientes; la reserva sigue pendiente de pago";
+            public static final String CARD_EXPIRED = "Pago rechazado: la tarjeta está vencida; la reserva sigue pendiente de pago";
+            public static final String METHOD_INVALID = "El proveedor no acepta este método de pago; la reserva sigue pendiente de pago";
+            public static final String EMPTY_PROVIDER_RESPONSE = "Empty response from payment provider";
+            public static final String LOG_UNAVAILABLE = "Payment service unavailable for reservation {}: {}";
+
+            private Payment() {
             }
         }
 
@@ -383,6 +410,8 @@ public final class AppConstants {
         public static final int IDEMPOTENCY_KEY_MAX = 64;
         public static final String IDEMPOTENCY_KEY_PATTERN = "[A-Za-z0-9-]{8,64}";
         public static final int REPORT_MAX_DAYS = 366;
+        public static final String CARD_TOKEN_PATTERN = "tok_[A-Za-z0-9_]{4,60}";
+        public static final String ACCOUNT_NUMBER_PATTERN = "[A-Z]{2}[0-9]{2}[A-Z0-9]{10,30}";
 
         private Limits() {
         }

@@ -11,6 +11,6 @@ public class ReservationMapper {
         return new ReservationResponse(reservation.getId(), reservation.getSpace().getId(), reservation.getSpace().getName(),
                 reservation.getUser().getId(), reservation.getUser().getEmail(), reservation.getStartAt(),
                 reservation.getEndAt(), reservation.getStatus(), reservation.getTotalAmount(), reservation.getCreatedAt(),
-                reservation.getCancelledAt());
+                reservation.getCancelledAt(), reservation.getPaymentReference());
     }
 }

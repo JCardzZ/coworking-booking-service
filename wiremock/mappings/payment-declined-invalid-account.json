@@ -3,11 +3,11 @@
   "request": {
     "method": "POST",
     "urlPath": "/payments/validate",
-    "bodyPatterns": [ { "matchesJsonPath": "$[?(@.amount >= 1000)]" } ]
+    "bodyPatterns": [ { "matchesJsonPath": "$.paymentMethod[?(@.accountNumber =~ /SV00.*/)]" } ]
   },
   "response": {
     "status": 200,
     "headers": { "Content-Type": "application/json" },
-    "jsonBody": { "status": "DECLINED" }
+    "jsonBody": { "status": "DECLINED", "reason": "INVALID_PAYMENT_METHOD" }
   }
 }
