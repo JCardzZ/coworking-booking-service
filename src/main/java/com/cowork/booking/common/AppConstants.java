@@ -16,6 +16,13 @@ public final class AppConstants {
         public static final String SPACES = "/spaces";
         public static final String SPACE_ID = "/{spaceId}";
 
+        public static final String AUTH = "/auth";
+        public static final String REGISTER = "/register";
+        public static final String LOGIN = "/login";
+
+        public static final String USERS = "/users";
+        public static final String ME = "/me";
+
         private Api() {
         }
     }
@@ -23,6 +30,7 @@ public final class AppConstants {
     public static final class Paging {
         public static final int DEFAULT_SIZE = 20;
         public static final String SPACE_DEFAULT_SORT = "name";
+        public static final String USER_DEFAULT_SORT = "email";
 
         private Paging() {
         }
@@ -39,13 +47,33 @@ public final class AppConstants {
 
     public static final class Security {
         public static final String BEARER_SCHEME = "bearerAuth";
+        public static final String TOKEN_TYPE = "Bearer";
+        public static final String ISSUER = "coworking-service";
+        public static final String ROLES_CLAIM = "roles";
+        public static final String EMAIL_CLAIM = "email";
+        public static final String ROLE_PREFIX = "ROLE_";
+        public static final String HAS_ROLE_ADMIN = "hasRole('ADMIN')";
 
         public static final List<String> PUBLIC_PATHS = List.of(
                 "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/actuator/health/**",
-                // TODO(jwt): remove
-                Api.BASE_PATH + Api.SPACES + "/**");
+                Api.BASE_PATH + Api.AUTH + "/**");
 
         private Security() {
+        }
+    }
+
+    public static final class Audit {
+        public static final String LOGGER = "AUDIT";
+        public static final String SYSTEM_USER = "system";
+        public static final String LOG_SUCCESS = "action={} user={} roles={} outcome=SUCCESS";
+        public static final String LOG_FAILURE = "action={} user={} roles={} outcome=FAILURE reason={}";
+
+        public static final String SPACE_CREATE = "SPACE_CREATE";
+        public static final String SPACE_UPDATE = "SPACE_UPDATE";
+        public static final String SPACE_DELETE = "SPACE_DELETE";
+        public static final String USER_REGISTER = "USER_REGISTER";
+
+        private Audit() {
         }
     }
 
@@ -67,6 +95,8 @@ public final class AppConstants {
         public static final String INTERNAL_ERROR = "INTERNAL_ERROR";
 
         public static final String SPACE_NAME_TAKEN = "SPACE_NAME_TAKEN";
+        public static final String EMAIL_TAKEN = "EMAIL_TAKEN";
+        public static final String INVALID_CREDENTIALS = "INVALID_CREDENTIALS";
 
         private ErrorCodes() {
         }
@@ -152,6 +182,8 @@ public final class AppConstants {
             public static final String MAX_LENGTH = "debe tener como máximo {max} caracteres";
             public static final String DECIMAL_FORMAT = "debe tener como máximo {integer} dígitos enteros y {fraction} decimales";
             public static final String INVALID_VALUE = "tiene un valor inválido";
+            public static final String EMAIL_FORMAT = "debe ser un email válido";
+            public static final String LENGTH_RANGE = "debe tener entre {min} y {max} caracteres";
 
             private Validation() {
             }
@@ -166,6 +198,25 @@ public final class AppConstants {
             private Space() {
             }
         }
+
+        public static final class User {
+            public static final String RESOURCE_TYPE = "User";
+            public static final String NOT_FOUND = "Usuario con id %s no encontrado";
+
+            private User() {
+            }
+        }
+
+        public static final class Auth {
+            public static final String EMAIL_FIELD = "email";
+            public static final String EMAIL_TAKEN = "Ya existe un usuario con el email '%s'";
+            public static final String INVALID_CREDENTIALS_TITLE = "Credenciales inválidas";
+            public static final String INVALID_CREDENTIALS_DETAIL = "Email o contraseña incorrectos";
+            public static final String LOG_ADMIN_CREATED = "Usuario administrador inicial creado: {}";
+
+            private Auth() {
+            }
+        }
     }
 
     /** Must match the Flyway column definitions. */
@@ -175,6 +226,12 @@ public final class AppConstants {
         public static final int SPACE_LOCATION_MAX = 150;
         public static final int MONEY_INTEGER_DIGITS = 8;
         public static final int MONEY_FRACTION_DIGITS = 2;
+        public static final int EMAIL_MAX = 150;
+        public static final int FULL_NAME_MAX = 100;
+        /** BCrypt only uses the first 72 bytes. */
+        public static final int PASSWORD_MIN = 8;
+        public static final int PASSWORD_MAX = 72;
+        public static final int AUDITOR_MAX = 150;
 
         private Limits() {
         }

@@ -6,6 +6,7 @@ import com.cowork.booking.common.ApiErrorSchemas.NotFoundProblem;
 import com.cowork.booking.common.ApiErrorSchemas.ValidationProblem;
 import com.cowork.booking.common.AppConstants.Api;
 import com.cowork.booking.common.AppConstants.Paging;
+import com.cowork.booking.common.AppConstants.Security;
 import com.cowork.booking.space.dto.SpaceFilter;
 import com.cowork.booking.space.dto.SpaceRequest;
 import com.cowork.booking.space.dto.SpaceResponse;
@@ -25,6 +26,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.data.web.PagedModel;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -69,8 +71,9 @@ public class SpaceController {
     }
 
     @PostMapping
+    @PreAuthorize(Security.HAS_ROLE_ADMIN)
     @Operation(operationId = "createSpace", summary = "Crear un espacio",
-            description = "El nombre debe ser único entre los espacios activos (sin distinguir mayúsculas).")
+            description = "Requiere rol ADMIN. El nombre debe ser único entre los espacios activos (sin distinguir mayúsculas).")
     @ApiResponse(responseCode = "201", description = "Espacio creado",
             headers = @Header(name = HttpHeaders.LOCATION, description = "URL del nuevo espacio", schema = @Schema(type = "string")))
     @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos",
@@ -85,8 +88,9 @@ public class SpaceController {
     }
 
     @PutMapping(Api.SPACE_ID)
+    @PreAuthorize(Security.HAS_ROLE_ADMIN)
     @Operation(operationId = "updateSpace", summary = "Reemplazar un espacio",
-            description = "Reemplaza todos los datos editables de un espacio activo.")
+            description = "Requiere rol ADMIN. Reemplaza todos los datos editables de un espacio activo.")
     @ApiResponse(responseCode = "200", description = "Espacio actualizado")
     @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos",
             content = @Content(mediaType = ApiDocs.PROBLEM_JSON, schema = @Schema(implementation = ValidationProblem.class)))
@@ -100,8 +104,9 @@ public class SpaceController {
     }
 
     @DeleteMapping(Api.SPACE_ID)
+    @PreAuthorize(Security.HAS_ROLE_ADMIN)
     @Operation(operationId = "deleteSpace", summary = "Desactivar un espacio",
-            description = "Borrado lógico: deja de aparecer y libera su nombre, pero se conserva para reservas y reportes.")
+            description = "Requiere rol ADMIN. Borrado lógico: deja de aparecer y libera su nombre, pero se conserva para reservas y reportes.")
     @ApiResponse(responseCode = "204", description = "Espacio desactivado")
     @ApiResponse(responseCode = "404", description = "Espacio no encontrado",
             content = @Content(mediaType = ApiDocs.PROBLEM_JSON, schema = @Schema(implementation = NotFoundProblem.class)))

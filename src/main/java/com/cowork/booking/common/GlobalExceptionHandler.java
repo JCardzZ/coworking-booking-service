@@ -1,12 +1,11 @@
 package com.cowork.booking.common;
 
 import com.cowork.booking.common.AppConstants.ErrorCodes;
+import com.cowork.booking.common.AppConstants.Messages;
 import com.cowork.booking.common.AppConstants.Messages.Common;
 import com.cowork.booking.common.AppConstants.Messages.Validation;
 import com.cowork.booking.common.AppConstants.Problem;
-import com.cowork.booking.common.AppConstants.Tracing;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -18,16 +17,14 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.lang.Nullable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import java.net.URI;
-import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -39,7 +36,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     ProblemDetail handleNotFound(ResourceNotFoundException ex) {
-        ProblemDetail problem = problem(HttpStatus.NOT_FOUND, Common.NOT_FOUND_TITLE, ex.getMessage(), ErrorCodes.RESOURCE_NOT_FOUND);
+        ProblemDetail problem = ProblemDetails.of(HttpStatus.NOT_FOUND, Common.NOT_FOUND_TITLE, ex.getMessage(), ErrorCodes.RESOURCE_NOT_FOUND);
         problem.setProperty(Problem.RESOURCE_TYPE, ex.getResourceType());
         problem.setProperty(Problem.RESOURCE_ID, ex.getResourceId());
         return problem;
@@ -47,7 +44,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(BusinessRuleException.class)
     ProblemDetail handleBusinessRule(BusinessRuleException ex) {
-        ProblemDetail problem = problem(HttpStatus.CONFLICT, Common.BUSINESS_RULE_TITLE, ex.getMessage(), ex.getCode());
+        ProblemDetail problem = ProblemDetails.of(HttpStatus.CONFLICT, Common.BUSINESS_RULE_TITLE, ex.getMessage(), ex.getCode());
         if (ex.getConflictingField() != null) {
             problem.setProperty(Problem.CONFLICTING_FIELD, ex.getConflictingField());
         }
@@ -58,34 +55,46 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     ProblemDetail handleDataIntegrity(DataIntegrityViolationException ex) {
         log.warn(Common.LOG_DATA_INTEGRITY, ex.getMostSpecificCause().getMessage());
-        return problem(HttpStatus.CONFLICT, Common.DATA_INTEGRITY_TITLE, Common.DATA_INTEGRITY_DETAIL,
+        return ProblemDetails.of(HttpStatus.CONFLICT, Common.DATA_INTEGRITY_TITLE, Common.DATA_INTEGRITY_DETAIL,
                 ErrorCodes.DATA_INTEGRITY_VIOLATION);
     }
 
     @ExceptionHandler(OptimisticLockingFailureException.class)
     ProblemDetail handleOptimisticLock(OptimisticLockingFailureException ex) {
-        return problem(HttpStatus.CONFLICT, Common.CONCURRENT_MODIFICATION_TITLE, Common.CONCURRENT_MODIFICATION_DETAIL,
+        return ProblemDetails.of(HttpStatus.CONFLICT, Common.CONCURRENT_MODIFICATION_TITLE, Common.CONCURRENT_MODIFICATION_DETAIL,
                 ErrorCodes.CONCURRENT_MODIFICATION);
     }
 
     // Unknown property in ?sort=... query parameter
     @ExceptionHandler(PropertyReferenceException.class)
     ProblemDetail handleInvalidSort(PropertyReferenceException ex) {
-        return problem(HttpStatus.BAD_REQUEST, Common.INVALID_SORT_TITLE,
+        return ProblemDetails.of(HttpStatus.BAD_REQUEST, Common.INVALID_SORT_TITLE,
                 Common.INVALID_SORT_DETAIL.formatted(ex.getPropertyName()), ErrorCodes.INVALID_SORT);
+    }
+
+    @ExceptionHandler(AuthenticationFailedException.class)
+    ProblemDetail handleAuthenticationFailed(AuthenticationFailedException ex) {
+        return ProblemDetails.of(HttpStatus.UNAUTHORIZED, Messages.Auth.INVALID_CREDENTIALS_TITLE, ex.getMessage(),
+                ErrorCodes.INVALID_CREDENTIALS);
+    }
+
+    // @PreAuthorize denials happen inside MVC, so they reach the advice instead of the security handler.
+    @ExceptionHandler(AccessDeniedException.class)
+    ProblemDetail handleAccessDenied(AccessDeniedException ex) {
+        return ProblemDetails.of(HttpStatus.FORBIDDEN, Common.FORBIDDEN_TITLE, Common.FORBIDDEN_DETAIL, ErrorCodes.FORBIDDEN);
     }
 
     @ExceptionHandler(Exception.class)
     ProblemDetail handleUnexpected(Exception ex) {
         log.error(Common.LOG_UNEXPECTED_ERROR, ex);
-        return problem(HttpStatus.INTERNAL_SERVER_ERROR, Common.INTERNAL_ERROR_TITLE, Common.INTERNAL_ERROR_DETAIL,
+        return ProblemDetails.of(HttpStatus.INTERNAL_SERVER_ERROR, Common.INTERNAL_ERROR_TITLE, Common.INTERNAL_ERROR_DETAIL,
                 ErrorCodes.INTERNAL_ERROR);
     }
 
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex, HttpHeaders headers,
                                                                   HttpStatusCode status, WebRequest request) {
-        ProblemDetail body = problem(HttpStatus.BAD_REQUEST, Common.VALIDATION_FAILED_TITLE,
+        ProblemDetail body = ProblemDetails.of(HttpStatus.BAD_REQUEST, Common.VALIDATION_FAILED_TITLE,
                 Common.VALIDATION_FAILED_DETAIL, ErrorCodes.VALIDATION_ERROR);
         List<Map<String, String>> errors = ex.getBindingResult().getFieldErrors().stream()
                 .map(GlobalExceptionHandler::toViolation)
@@ -97,7 +106,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @Override
     protected ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException ex, HttpHeaders headers,
                                                                   HttpStatusCode status, WebRequest request) {
-        ProblemDetail body = problem(HttpStatus.BAD_REQUEST, Common.MALFORMED_REQUEST_TITLE,
+        ProblemDetail body = ProblemDetails.of(HttpStatus.BAD_REQUEST, Common.MALFORMED_REQUEST_TITLE,
                 Common.MALFORMED_REQUEST_DETAIL, ErrorCodes.MALFORMED_REQUEST);
         return handleExceptionInternal(ex, body, headers, status, request);
     }
@@ -105,7 +114,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @Override
     protected ResponseEntity<Object> handleTypeMismatch(TypeMismatchException ex, HttpHeaders headers,
                                                         HttpStatusCode status, WebRequest request) {
-        ProblemDetail body = problem(HttpStatus.BAD_REQUEST, Common.INVALID_PARAMETER_TITLE,
+        ProblemDetail body = ProblemDetails.of(HttpStatus.BAD_REQUEST, Common.INVALID_PARAMETER_TITLE,
                 Common.INVALID_PARAMETER_DETAIL.formatted(ex.getPropertyName()), ErrorCodes.INVALID_PARAMETER);
         return handleExceptionInternal(ex, body, headers, status, request);
     }
@@ -115,11 +124,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     protected ResponseEntity<Object> handleExceptionInternal(Exception ex, @Nullable Object body, HttpHeaders headers,
                                                              HttpStatusCode statusCode, WebRequest request) {
         ResponseEntity<Object> response = super.handleExceptionInternal(ex, body, headers, statusCode, request);
-        if (response != null && response.getBody() instanceof ProblemDetail problem && !hasCode(problem)) {
+        if (response != null && response.getBody() instanceof ProblemDetail problem && !ProblemDetails.hasCode(problem)) {
             FrameworkError error = FrameworkError.of(statusCode);
             problem.setTitle(error.title());
             problem.setDetail(error.detail());
-            enrich(problem, error.code());
+            ProblemDetails.enrich(problem, error.code());
         }
         return response;
     }
@@ -138,35 +147,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                         : new FrameworkError(ErrorCodes.REQUEST_ERROR, Common.REQUEST_ERROR_TITLE, Common.REQUEST_ERROR_DETAIL);
             };
         }
-    }
-
-    private static ProblemDetail problem(HttpStatus status, String title, @Nullable String detail, String code) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
-        problem.setTitle(title);
-        enrich(problem, code);
-        return problem;
-    }
-
-    private static void enrich(ProblemDetail problem, String code) {
-        problem.setType(problemType(code));
-        problem.setProperty(Problem.CODE, code);
-        problem.setProperty(Problem.TIMESTAMP, Instant.now());
-        String traceId = MDC.get(Tracing.MDC_KEY);
-        if (traceId != null) {
-            problem.setProperty(Problem.TRACE_ID, traceId);
-        }
-    }
-
-    // Per-environment URL; proxy-aware via server.forward-headers-strategy.
-    private static URI problemType(String code) {
-        return ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path(Problem.ERRORS_PATH + Problem.slug(code))
-                .build()
-                .toUri();
-    }
-
-    private static boolean hasCode(ProblemDetail problem) {
-        return problem.getProperties() != null && problem.getProperties().containsKey(Problem.CODE);
     }
 
     private static Map<String, String> toViolation(FieldError error) {
