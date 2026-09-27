@@ -38,7 +38,9 @@ docker compose up
 | API | http://localhost:8080/coworking-service/api/v1 |
 | Swagger UI | http://localhost:8080/coworking-service/swagger-ui.html |
 | OpenAPI (JSON) | http://localhost:8080/coworking-service/v3/api-docs |
-| Health | http://localhost:8080/coworking-service/actuator/health |
+| Health | http://localhost:8080/coworking-service/actuator/health (detalle solo ADMIN) |
+| Info | http://localhost:8080/coworking-service/actuator/info |
+| Métricas | http://localhost:8080/coworking-service/actuator/metrics (solo ADMIN) |
 | WireMock | http://localhost:8081 |
 | PostgreSQL | `localhost:5433` (db, usuario y contraseña: `coworking`) |
 

@@ -23,6 +23,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(AppConstants.Security.PUBLIC_PATHS.toArray(String[]::new)).permitAll()
+                        .requestMatchers(AppConstants.Security.ADMIN_PATHS.toArray(String[]::new))
+                        .hasRole(AppConstants.Security.ADMIN_ROLE)
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))
