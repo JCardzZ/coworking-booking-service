@@ -5,9 +5,12 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import lombok.AccessLevel;
@@ -37,9 +40,13 @@ public class User extends AuditableEntity {
     @Column(name = "full_name", nullable = false, length = FULL_NAME_MAX)
     private String fullName;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "role_id", nullable = false)
+    private Role role;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = ENUM_MAX)
-    private Role role;
+    private UserStatus status = UserStatus.ACTIVE;
 
     @Version
     private long version;
@@ -49,5 +56,13 @@ public class User extends AuditableEntity {
         this.passwordHash = passwordHash;
         this.fullName = fullName;
         this.role = role;
+    }
+
+    public void changeStatus(UserStatus status) {
+        this.status = status;
+    }
+
+    public boolean isActive() {
+        return status == UserStatus.ACTIVE;
     }
 }

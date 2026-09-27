@@ -7,25 +7,30 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
-import java.util.List;
 import java.util.Optional;
 
-/** Identity of the authenticated caller, taken only from the validated JWT. */
+/** Current caller, read from the validated JWT. */
 public final class CurrentUser {
 
     private CurrentUser() {
+    }
+
+    public static Optional<Long> id() {
+        return jwt().map(token -> Long.valueOf(token.getToken().getSubject()));
     }
 
     public static String email() {
         return jwt().map(token -> token.getToken().getClaimAsString(Security.EMAIL_CLAIM)).orElse(Audit.SYSTEM_USER);
     }
 
-    public static List<String> roles() {
-        return jwt().map(token -> token.getAuthorities().stream()
+    // Comes from the DB-backed authorities, so it reflects role changes
+    public static String role() {
+        return jwt().flatMap(token -> token.getAuthorities().stream()
                         .map(GrantedAuthority::getAuthority)
-                        .map(authority -> authority.replaceFirst(Security.ROLE_PREFIX, ""))
-                        .toList())
-                .orElse(List.of());
+                        .filter(authority -> authority.startsWith(Security.ROLE_PREFIX))
+                        .map(authority -> authority.substring(Security.ROLE_PREFIX.length()))
+                        .findFirst())
+                .orElse(Audit.SYSTEM_USER);
     }
 
     private static Optional<JwtAuthenticationToken> jwt() {

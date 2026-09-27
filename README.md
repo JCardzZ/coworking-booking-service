@@ -110,6 +110,7 @@ src/main/resources
 
 - **Swagger UI accesible también con el perfil `prod`**: se deja expuesto para que el evaluador pueda explorar y probar la API con `docker compose up`. En un despliegue real se restringiría a nivel de infraestructura (red interna o API Gateway), no desactivándolo desde el código de la aplicación.
 - **Paquetes por dominio en vez de por capa**: se gana cohesión (cada dominio agrupa todo lo que necesita), dominios aislados entre sí y más fáciles de extraer a otro servicio si hiciera falta. A cambio, las subcarpetas `controller/service/repository/dto/mapper` se repiten en cada dominio.
+- **RBAC dinámico**: los roles se crean y editan por API (`/admin/roles`); los permisos son un catálogo fijo porque el código los comprueba (`@PreAuthorize("hasAuthority('SPACE_WRITE')")`). El JWT solo identifica al usuario: sus permisos y su estado se leen de la base en cada petición (con caché que se invalida al cambiar un rol o bloquear una cuenta), así los cambios aplican al instante sin esperar a que caduque el token. El rol ADMIN no puede perder `USER_MANAGE` ni `RBAC_MANAGE`, para que nadie quede fuera de la administración.
 - **Credenciales de evaluación**: el admin inicial se crea al arrancar desde `ADMIN_EMAIL`/`ADMIN_PASSWORD`, y `JWT_SECRET` firma los tokens. Los valores del README, `.env.example` y `docker-compose.yml` son solo para evaluación; en un despliegue real se sustituyen por secretos gestionados (vault o secretos del orquestador).
 
 _Resto pendiente de completar._

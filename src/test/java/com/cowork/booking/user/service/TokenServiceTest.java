@@ -4,7 +4,7 @@ import com.cowork.booking.common.AppConstants.Security;
 import com.cowork.booking.config.JwtConfig;
 import com.cowork.booking.config.SecurityProperties;
 import com.cowork.booking.user.dto.TokenResponse;
-import com.cowork.booking.user.model.Role;
+import com.cowork.booking.user.UserFixtures;
 import com.cowork.booking.user.model.User;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import org.junit.jupiter.api.Test;
@@ -38,7 +38,7 @@ class TokenServiceTest {
 
     @Test
     void issuedTokenCarriesIdentityRoleAndExpiration() {
-        User user = user(Role.ADMIN);
+        User user = user("ADMIN");
         TokenService tokenService = new TokenService(encoder, PROPERTIES, Clock.systemUTC());
 
         TokenResponse response = tokenService.issue(user);
@@ -48,22 +48,20 @@ class TokenServiceTest {
         assertThat(response.expiresIn()).isEqualTo(3600);
         assertThat(jwt.getSubject()).isEqualTo("7");
         assertThat(jwt.getClaimAsString(Security.EMAIL_CLAIM)).isEqualTo("admin@test.com");
-        assertThat(jwt.getClaimAsStringList(Security.ROLES_CLAIM)).containsExactly("ADMIN");
+        assertThat(jwt.getClaimAsString(Security.ROLE_CLAIM)).isEqualTo("ADMIN");
         assertThat(jwt.getClaimAsString(JwtClaimNames.ISS)).isEqualTo(Security.ISSUER);
     }
 
     @Test
     void expiredTokenIsRejected() {
         Clock twoHoursAgo = Clock.fixed(Instant.now().minus(Duration.ofHours(2)), ZoneOffset.UTC);
-        String token = new TokenService(encoder, PROPERTIES, twoHoursAgo).issue(user(Role.USER)).accessToken();
+        String token = new TokenService(encoder, PROPERTIES, twoHoursAgo).issue(user("USER")).accessToken();
 
         assertThatThrownBy(() -> decoder.decode(token)).isInstanceOf(JwtValidationException.class);
     }
 
-    private static User user(Role role) {
-        User user = new User("admin@test.com", "hash", "Admin", role);
-        ReflectionTestUtils.setField(user, "id", 7L);
-        return user;
+    private static User user(String roleName) {
+        return UserFixtures.user(7L, "admin@test.com", UserFixtures.role(roleName));
     }
 
     @SuppressWarnings("unchecked")
