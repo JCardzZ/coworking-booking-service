@@ -43,6 +43,17 @@ import java.util.Objects;
 @Configuration
 public class OpenApiConfig {
 
+    private static final String API_DESCRIPTION = """
+            Microservicio de gestión de reservas de espacios de coworking.
+
+            **Cómo probar**
+            1. `POST /auth/register` crea un usuario con rol USER (o usa el admin de evaluación indicado en el README).
+            2. `POST /auth/login` devuelve un `accessToken`.
+            3. Pulsa **Authorize**, pega el token y confirma. Queda guardado aunque recargues la página.
+            4. Prueba el resto de endpoints. Los de escritura de espacios y los de Admin requieren un usuario ADMIN.
+
+            Todos los errores siguen RFC 9457 (`application/problem+json`) con un `code` estable y un `traceId`.
+            """;
     private static final String PROBLEM_SCHEMA_REF = Components.COMPONENTS_SCHEMAS_REF + ApiErrorSchemas.PROBLEM_SCHEMA;
 
     @Bean
@@ -52,7 +63,7 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("Coworking Booking Service")
-                        .description("Microservicio de gestión de reservas de espacios de coworking.")
+                        .description(API_DESCRIPTION)
                         .version(version))
                 .components(new Components().addSecuritySchemes(Security.BEARER_SCHEME, new SecurityScheme()
                         .type(SecurityScheme.Type.HTTP)
