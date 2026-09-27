@@ -1,6 +1,7 @@
 package com.cowork.booking.reservation.service;
 
 import com.cowork.booking.common.AppConstants.Audit;
+import com.cowork.booking.common.AppConstants.Caches;
 import com.cowork.booking.common.AppConstants.ErrorCodes;
 import com.cowork.booking.common.AppConstants.Limits;
 import com.cowork.booking.common.AppConstants.Messages;
@@ -26,6 +27,7 @@ import com.cowork.booking.space.repository.SpaceRepository;
 import com.cowork.booking.user.model.User;
 import com.cowork.booking.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -90,6 +92,7 @@ public class ReservationService {
 
     // no DB transaction open while we wait for the payment provider
     @Audited(Audit.RESERVATION_CONFIRM)
+    @CacheEvict(cacheNames = Caches.OCCUPANCY_REPORT, allEntries = true)
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public ConfirmResult confirm(Long id) {
         Reservation reservation = getVisible(id, Permissions.RESERVATION_MANAGE_ALL);
@@ -118,6 +121,7 @@ public class ReservationService {
 
     @Transactional
     @Audited(Audit.RESERVATION_CANCEL)
+    @CacheEvict(cacheNames = Caches.OCCUPANCY_REPORT, allEntries = true)
     public ReservationResponse cancel(Long id) {
         Reservation reservation = getVisible(id, Permissions.RESERVATION_MANAGE_ALL);
         reservation.cancel(clock.instant());

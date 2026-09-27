@@ -14,6 +14,7 @@ public final class ApiDocs {
         public static final String USERS = "Users";
         public static final String ADMIN = "Admin";
         public static final String RESERVATIONS = "Reservations";
+        public static final String REPORTS = "Reports";
 
         private Tags() {
         }
