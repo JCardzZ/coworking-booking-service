@@ -82,6 +82,9 @@ class OccupancyReportServiceTest {
         assertThat(new OccupancyReportRequest(TO, FROM, null).isValidRange()).isFalse();
         assertThat(new OccupancyReportRequest(FROM, FROM.plusDays(365), null).isValidRange()).isTrue();
         assertThat(new OccupancyReportRequest(FROM, FROM.plusDays(366), null).isValidRange()).isFalse();
+        // missing dates are reported by @NotNull, not by this check
+        assertThat(new OccupancyReportRequest(null, TO, null).isValidRange()).isTrue();
+        assertThat(new OccupancyReportRequest(FROM, null, null).isValidRange()).isTrue();
     }
 
     private static OccupancyRow row(Long spaceId, String name, long reservations, long seconds) {

@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'jacoco'
     id 'org.springframework.boot' version '3.5.16'
     id 'io.spring.dependency-management' version '1.1.7'
 }
@@ -76,4 +77,34 @@ dependencyManagement {
 
 tasks.named('test') {
     useJUnitPlatform()
+    finalizedBy 'jacocoTestReport'
+}
+
+// generated metamodel, main class and Swagger-only schemas: nothing to test there
+def coverageExcludes = ['**/*_.class', '**/CoworkingBookingServiceApplication.class', '**/ApiErrorSchemas*.class']
+
+tasks.named('jacocoTestReport') {
+    dependsOn 'test'
+    reports {
+        xml.required = true
+        html.required = true
+    }
+    classDirectories.setFrom(files(classDirectories.files.collect { fileTree(dir: it, exclude: coverageExcludes) }))
+}
+
+tasks.named('jacocoTestCoverageVerification') {
+    dependsOn 'test'
+    classDirectories.setFrom(files(classDirectories.files.collect { fileTree(dir: it, exclude: coverageExcludes) }))
+    violationRules {
+        rule {
+            limit {
+                counter = 'LINE'
+                minimum = 0.90
+            }
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn 'jacocoTestCoverageVerification'
 }
