@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+env:
+  IMAGE: ghcr.io/jcardzz/coworking-booking-service
+  APP_URL: https://coworking-booking-service-ujuk.onrender.com/coworking-service
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -70,9 +74,37 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+
+  scan:
+    needs: publish
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE }}:${{ github.sha }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+          # only fail on issues that already have a fix we can apply
+          ignore-unfixed: true
+          exit-code: '1'
+
+      # upload even when the scan fails, that's when the report matters most
+      - name: Upload report to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-results.sarif
 
   deploy:
-    needs: publish
+    needs: scan
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production
@@ -80,4 +112,26 @@ jobs:
       - name: Trigger Render deploy
         run: |
           curl -fsS -X POST \
-            "${{ secrets.RENDER_DEPLOY_HOOK }}&imgURL=ghcr.io/jcardzz/coworking-booking-service:${{ github.sha }}"
+            "${{ secrets.RENDER_DEPLOY_HOOK }}&imgURL=${{ env.IMAGE }}:${{ github.sha }}"
+
+  smoke-test:
+    needs: deploy
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Render keeps the old version up until the new one is ready, so poll until info shows this commit
+      - name: Wait for the new version to be live
+        run: |
+          for attempt in $(seq 1 40); do
+            commit=$(curl -fsS --max-time 20 "$APP_URL/actuator/info" | jq -r '.build.commit // empty' || true)
+            status=$(curl -fsS --max-time 20 "$APP_URL/actuator/health" | jq -r '.status // empty' || true)
+            echo "attempt $attempt: commit=${commit:-none} status=${status:-none}"
+            if [ "$commit" = "$GITHUB_SHA" ] && [ "$status" = "UP" ]; then
+              echo "$GITHUB_SHA is live and UP"
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "::error::Render is not serving $GITHUB_SHA with status UP after 10 minutes"
+          exit 1
