@@ -10,6 +10,8 @@ COPY gradle ./gradle
 RUN chmod +x gradlew && ./gradlew dependencies --no-daemon > /dev/null
 
 COPY src ./src
+# commit sha for /actuator/info, set by CI
+ARG GIT_SHA=local
 RUN ./gradlew bootJar -x test --no-daemon \
     && find build/libs -name '*.jar' ! -name '*-plain.jar' -exec cp {} app.jar \; \
     && java -Djarmode=tools -jar app.jar extract --layers --launcher --destination extracted
