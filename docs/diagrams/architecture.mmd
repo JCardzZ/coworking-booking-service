@@ -1,40 +1,29 @@
-flowchart LR
-    subgraph clientes["Clientes"]
-        sw["Swagger UI"]
-        pm["Postman"]
-    end
+sequenceDiagram
+    autonumber
+    actor Dev as Desarrollador
+    participant GH as GitHub Actions
+    participant GHCR as GHCR
+    participant App as App en Render
+    participant DB as PostgreSQL en Render
+    participant Mock as Mock de pagos en Render
+    actor U as Cliente
 
-    subgraph render["Render"]
-        subgraph app["coworking-booking-service"]
-            sec["Seguridad<br/>JWT y permisos por rol"]
-            api["API REST"]
-            res["Reservas<br/>estados con patrón State"]
-            payc["Cliente de pagos<br/>retry y circuit breaker"]
-            evt[["Evento: reserva confirmada"]]
-            notif["Notificación<br/>en otro hilo"]
-            cache[("Caché<br/>reporte y permisos")]
-            act["Actuator"]
-        end
-        db[("PostgreSQL")]
-        mock["Proveedor de pagos<br/>WireMock"]
+    Note over Dev,U: Despliegue
+    Dev->>GH: merge a main
+    GH->>GH: build y tests con Testcontainers
+    GH->>GHCR: publica la imagen con el SHA del commit
+    GH->>GHCR: Trivy escanea la imagen, el reporte va a Security
+    GH->>App: deploy hook con la imagen de ese SHA
+    App->>GHCR: baja la imagen y arranca
+    App->>DB: Flyway aplica las migraciones pendientes
+    loop hasta ver el commit nuevo
+        GH->>App: GET /actuator/info
     end
+    Note over DB,U: el mock se despliega aparte, desde la carpeta wiremock/
 
-    subgraph cicd["GitHub Actions"]
-        build["Build y tests"] --> publish["Imagen en GHCR"]
-        publish --> scan["Escaneo con Trivy"]
-        scan --> deploy["Deploy en Render"]
-        deploy --> verify["Verifica el commit desplegado"]
-    end
-
-    sw --> sec
-    pm --> sec
-    sec --> api
-    api --> res
-    api --> cache
-    res --> db
-    res --> payc
-    payc -->|"Idempotency-Key"| mock
-    res -.-> evt
-    evt -.-> notif
-    deploy --> app
-    verify --> act
+    Note over Dev,U: Uso
+    U->>App: petición con token JWT
+    App->>DB: lee y escribe
+    App->>Mock: valida el pago con Idempotency-Key
+    Mock-->>App: aprobado, rechazado, error o lento
+    App-->>U: respuesta

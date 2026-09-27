@@ -18,7 +18,7 @@ Microservicio REST para gestionar reservas de espacios de coworking.
 | Lenguaje / framework | Java 21, Spring Boot 3.5 |
 | Persistencia | PostgreSQL 17, Spring Data JPA, Flyway |
 | Seguridad | Spring Security, OAuth2 Resource Server (JWT) |
-| Resiliencia | Resilience4j (Spring Cloud Circuit Breaker) |
+| Resiliencia | Resilience4j: circuit breaker y retry (Spring Cloud Circuit Breaker) |
 | Documentación API | springdoc-openapi (Swagger UI) |
 | Tests | JUnit 5, Testcontainers |
 | Empaquetado / CI | Docker (multi-arch), GitHub Actions, GHCR |
@@ -26,6 +26,21 @@ Microservicio REST para gestionar reservas de espacios de coworking.
 ## Cómo arrancarlo
 
 Requisitos: Docker. Para el flujo de desarrollo, además JDK 21.
+
+### En producción (Render)
+
+Está desplegado y se puede probar sin instalar nada:
+
+| | URL |
+|--|--|
+| Swagger UI | https://coworking-booking-service-ujuk.onrender.com/coworking-service/swagger-ui.html |
+| API | https://coworking-booking-service-ujuk.onrender.com/coworking-service/api/v1 |
+| Health | https://coworking-booking-service-ujuk.onrender.com/coworking-service/actuator/health |
+| Proveedor de pagos (WireMock) | https://coworking-payments-mock.onrender.com |
+
+Admin de evaluación: `admin@coworking.com` / `Admin12345!`.
+
+Es el plan gratis de Render: si nadie la usa por un rato, la app y el mock se duermen y la primera petición tarda unos segundos. Por lo mismo, el primer `confirm` después de un rato puede responder 202 (el proveedor tardó más de 2 s en despertar); el siguiente ya responde normal.
 
 ### Stack completo (PostgreSQL + WireMock + app)
 
@@ -83,6 +98,24 @@ set -a; source .env; set +a && ./gradlew bootRun  # perfil "dev" por defecto
 Hook de git (una sola vez): `git config core.hooksPath .githooks`. Bloquea el `git push` si `./gradlew build` falla. Requiere Docker encendido (los tests usan Testcontainers); en una emergencia se omite con `git push --no-verify`.
 
 `application-dev.yml` no tiene valores por defecto: las variables de `.env` son obligatorias. Spring no lee `.env` por sí solo; en IntelliJ se carga con el plugin **EnvFile** (Settings → Plugins → buscar "EnvFile"), activándolo en Run/Debug Configurations → pestaña EnvFile → agregar `.env`.
+
+### Postman
+
+La colección está en `postman/`, con dos entornos: `local` y `prod-render`. Importa ambos y córrela en orden:
+
+- **00 · Sesión**: login del admin y del usuario. Siempre primero.
+- **01 · Flujo completo**: crear espacio, reservar, pagar y ver la ocupación.
+- **02 · Mantenimientos**: espacios, roles y usuarios.
+- **03 · Lógica de negocio**: reservas, pagos y reporte cuando todo sale bien.
+- **04 · Casos de prueba**: validaciones, permisos, rechazos y fallas del proveedor.
+- **05 · Operación**: actuator y Swagger.
+
+Cada request guarda lo que necesita el siguiente y trae sus propias pruebas. Desde la terminal:
+
+```bash
+npx newman run postman/coworking-booking-service.postman_collection.json \
+  -e postman/environments/local.postman_environment.json
+```
 
 ### Tests
 
@@ -154,78 +187,80 @@ src/main/resources
 
 ## Por qué usé cada pieza
 
-**Spring Data JPA, `@Query` y Specifications.** Las relaciones son `@ManyToOne(fetch = LAZY)` (reserva → espacio, reserva → usuario, usuario → rol), así nada se carga si no se usa. Donde sí hace falta, como al listar reservas con su espacio y su usuario, uso `@EntityGraph` para traer todo en una sola consulta y evitar el N+1. Los filtros opcionales de los listados (tipo y capacidad en espacios; espacio, estado, fechas y usuario en reservas) van con Specifications y el metamodelo de JPA, en vez de armar un método de repositorio por cada combinación. Para lo que JPQL no expresa bien uso `@Query` nativa: el reporte de ocupación, que necesita `LEAST/GREATEST` sobre fechas. Las entidades tienen `@Version`: si dos personas editan lo mismo a la vez, la segunda recibe 409 en vez de pisar el cambio.
+**JPA, `@Query` y Specifications.** Las relaciones son `@ManyToOne` LAZY y, donde hace falta traer el espacio y el usuario de una reserva, uso `@EntityGraph` para hacerlo en una sola consulta (sin N+1). Los filtros opcionales de los listados van con Specifications, en vez de un método de repositorio por combinación. El reporte usa `@Query` nativa porque necesita `LEAST/GREATEST` sobre fechas. Las entidades tienen `@Version`: si dos personas editan lo mismo a la vez, la segunda recibe 409.
 
-**Spring Security con JWT.** La API no guarda sesión, así que un token firmado encaja bien. Lo emite la propia app (HS256, con `spring-boot-starter-oauth2-resource-server` para validarlo) y dura 1 h. La autorización va por permisos (`@PreAuthorize("hasAuthority(...)")`) y no por nombre de rol, así un rol nuevo funciona sin tocar código.
+**Spring Security con JWT.** La API no guarda sesión, así que un token firmado encaja bien. Lo emite la propia app y dura 1 h. La autorización va por permisos (`hasAuthority`), no por nombre de rol, así un rol nuevo funciona sin tocar código.
 
-**Bean Validation y `@RestControllerAdvice`.** Los DTOs de entrada se validan con anotaciones (`@NotBlank`, `@Positive`, `@AssertTrue` para que el fin sea posterior al inicio…) y los mensajes salen en español. Todos los errores pasan por `GlobalExceptionHandler` y salen en el mismo formato (ProblemDetail, RFC 9457) con un `code` estable y el `traceId` de la petición. Las excepciones de negocio son propias y cada una tiene su código HTTP: `ResourceNotFoundException` → 404, `BusinessRuleException` → 409 (solapamiento, transición inválida, nombre repetido) y `UnprocessableOperationException` → 422 (fecha pasada, pago rechazado). No hice una clase por cada error: el `code` (`RESERVATION_OVERLAP`, `PAYMENT_DECLINED`…) ya distingue el caso para el cliente.
+**Bean Validation y `@RestControllerAdvice`.** Los DTOs se validan con anotaciones y los mensajes salen en español. Todos los errores pasan por `GlobalExceptionHandler` con el mismo formato (ProblemDetail) y un `code` estable. Las excepciones de negocio son propias: `ResourceNotFoundException` → 404, `BusinessRuleException` → 409 y `UnprocessableOperationException` → 422. No hice una clase por error: el `code` (`RESERVATION_OVERLAP`, `PAYMENT_CARD_EXPIRED`…) ya distingue cada caso.
 
-**`@Transactional`.** Los servicios son `readOnly` por defecto y solo las escrituras abren una transacción normal. Crear una reserva revisa el solapamiento y guarda dentro de la misma transacción, y la constraint de la base cierra el hueco que queda entre dos peticiones simultáneas. Confirmar es distinto: la llamada al pago va fuera de la transacción (más abajo explico por qué).
+**`@Transactional`.** Los servicios son `readOnly` por defecto y solo las escrituras abren transacción. Crear una reserva revisa el solapamiento y guarda en la misma transacción; la constraint de la base cubre las peticiones simultáneas. Confirmar es distinto, lo explico más abajo.
 
-**Actuator.** Expongo `health`, `info`, `metrics` y `circuitbreakers`. Health es público pero sin detalle; el detalle (base, disco, circuito) y el resto solo los ve un admin. `info` muestra la versión y el commit desplegado, y el pipeline lo usa para confirmar que Render está sirviendo la imagen nueva.
+**Actuator.** `health`, `info`, `metrics`, `circuitbreakers` y `retries`, más una métrica propia, `payments.attempts`. Health es público sin detalle; lo demás solo lo ve un admin. `info` muestra el commit desplegado y el pipeline lo usa para confirmar que Render tiene la versión nueva.
 
-**Perfiles y `@ConfigurationProperties`.** `application.yml` tiene lo común, `application-dev.yml` lo local y `application-prod.yml` lee todo de variables de entorno. La configuración propia (JWT, admin inicial, URL y timeouts del proveedor de pagos) está en records con `@ConfigurationProperties` + `@Validated`: si falta un valor, la app no arranca y dice cuál. No hay `@Value` sueltos. No hice perfiles `qa` o `stg`: como `prod` no tiene valores fijos, QA, staging y producción pueden correr la misma imagen con el perfil `prod` y solo cambian sus variables de entorno. Así lo que se prueba en QA es exactamente lo que se despliega. Solo crearía un perfil nuevo si un ambiente tuviera que comportarse distinto (por ejemplo, más logs), no solo por tener otros valores. Para los tests hay un perfil `test` aparte (`src/test/resources/application-test.yml`).
+**Perfiles y `@ConfigurationProperties`.** `application.yml` tiene lo común, `dev` lo local y `prod` lee todo de variables de entorno. La configuración propia está en records con `@ConfigurationProperties` + `@Validated`: si falta un valor, la app no arranca y dice cuál. No hay `@Value` sueltos. No hice perfiles `qa` o `stg`: como `prod` no tiene valores fijos, cualquier ambiente corre la misma imagen y solo cambia sus variables. Para los tests hay un perfil `test`.
 
-**Caché.** Solo el reporte de ocupación y los permisos de cada usuario, que se leen mucho y cambian poco. Uso la caché en memoria de Spring porque para una instancia alcanza; abajo detallo cómo se invalida.
+**Caché.** Solo para el reporte y los permisos de cada usuario, que se leen mucho y cambian poco. En memoria, porque para una instancia alcanza.
 
-**`@Async` y eventos.** La notificación no tiene por qué hacer esperar al usuario, así que va en otro hilo a partir de un evento de dominio.
+**`@Async` y eventos.** La notificación no tiene por qué hacer esperar al usuario, así que sale en otro hilo a partir de un evento.
 
-**OpenAPI.** springdoc genera la documentación desde los controllers. Cada endpoint dice qué permiso pide y qué errores puede devolver, y Swagger UI trae el botón Authorize para probar con el token.
+**OpenAPI.** springdoc genera la documentación desde los controllers. Cada endpoint dice qué permiso pide y qué errores devuelve.
 
-**Tests.** Mockito para las reglas de negocio, que corren en milisegundos, y `@SpringBootTest` con Testcontainers para lo que un mock no puede demostrar: la constraint de Postgres con peticiones simultáneas, el circuit breaker contra un WireMock real y la caché del reporte. Uso Postgres de verdad y no H2 porque el `EXCLUDE USING gist` no existe en H2.
+**Tests.** Mockito para las reglas de negocio y `@SpringBootTest` con Testcontainers para lo que un mock no demuestra: la constraint con peticiones simultáneas, el circuit breaker contra un WireMock real y la caché. Postgres de verdad y no H2, porque H2 no tiene `EXCLUDE USING gist`.
 
-**Docker.** El `Dockerfile` es multi-stage: compila con el JDK y la imagen final solo lleva el JRE y corre con un usuario sin privilegios. `docker compose up` levanta Postgres, WireMock y la app con healthchecks, y la app no arranca hasta que los otros dos están sanos.
+**Docker.** `Dockerfile` multi-stage: compila con el JDK y la imagen final solo lleva el JRE, con un usuario sin privilegios. `docker compose up` levanta la base, el mock y la app, que espera a que los otros dos estén sanos.
+
+**Librerías que no pedía la prueba.**
+- **Flyway**: el esquema vive en migraciones y Hibernate solo lo valida. Nadie cambia tablas a mano.
+- **Lombok**: solo `@Getter`, `@RequiredArgsConstructor` y `@Slf4j`. Nada de `@Data` ni setters en entidades; los cambios pasan por métodos del dominio.
+- **hibernate-jpamodelgen**: las Specifications usan campos con tipo (`Space_.name`) en vez de strings, así un campo renombrado falla al compilar.
+- **Módulo de WireMock para Testcontainers**: levanta en los tests el mismo mock de `docker compose`. Está en alpha, pero es el que recomienda WireMock y solo corre en tests.
+- **Bouncy Castle 1.85, Tomcat y driver de PostgreSQL**: versiones forzadas en `build.gradle` porque Trivy marcó vulnerabilidades en las que venían.
 
 ## Decisiones y trade-offs
 
 ### Paquetes por dominio
-Preferí agrupar por dominio (`space`, `user`, `reservation`...) y no por capa. Cada dominio tiene todo lo suyo junto y, si algún día hay que sacarlo a otro servicio, es más fácil. Lo malo es que las carpetas `controller/service/repository/...` se repiten en cada uno.
+Agrupé por dominio (`space`, `reservation`, `payment`...) y no por capa: cada uno tiene lo suyo junto y sería fácil sacarlo a otro servicio. A cambio, las carpetas `controller/service/repository` se repiten.
 
 ### Roles y permisos dinámicos
-Los roles se crean y se editan por API (`/admin/roles`). Los permisos sí son un catálogo fijo, porque el código los revisa en cada endpoint con `@PreAuthorize`. El JWT solo dice quién es el usuario: sus permisos y si está bloqueado se leen de la base en cada petición (con caché). Así, si cambio el rol de alguien o lo bloqueo, aplica al momento sin esperar a que venza el token. Al rol ADMIN no se le pueden quitar `USER_MANAGE` ni `RBAC_MANAGE`, para no quedarse sin nadie que administre.
+Los roles se editan por API; los permisos son un catálogo fijo porque el código los revisa. El JWT solo dice quién es el usuario: sus permisos y si está bloqueado se leen de la base (con caché), así un cambio aplica al momento. Al ADMIN no se le pueden quitar `USER_MANAGE` ni `RBAC_MANAGE`, para no quedarse sin administrador.
 
 ### Reservas que no se pisan
-El servicio revisa el solapamiento antes de guardar para dar un error claro, pero eso solo no alcanza con dos peticiones al mismo tiempo. Por eso la regla también está en PostgreSQL con un `EXCLUDE USING gist` sobre `tstzrange(start_at, end_at)`: si dos llegan juntas, la base deja pasar una y la otra recibe 409. No usé locks en la aplicación porque la base ya lo resuelve y funciona igual con varias instancias. El rango es `[inicio, fin)`, así que una reserva de 9 a 10 y otra de 10 a 11 conviven sin problema.
+El servicio revisa el solapamiento para dar un error claro, pero con dos peticiones al mismo tiempo eso no alcanza. Por eso también está en PostgreSQL con un `EXCLUDE USING gist`: si llegan juntas, pasa una y la otra recibe 409. No usé locks en Java porque no sirven con varias instancias. El rango es `[inicio, fin)`: 9 a 10 y 10 a 11 conviven.
 
 ### Patrón State
-El problema: una reserva solo puede confirmarse si está pendiente de pago, y cancelarse si no está ya cancelada. Con `if/else` o un `switch` sobre el estado, esa regla termina repetida en `confirm`, en `cancel` y en cualquier operación nueva, y cada estado nuevo obliga a revisar todos esos `switch`.
+Una reserva solo se confirma si está pendiente de pago y solo se cancela si no está cancelada. Con `if/else` o `switch`, esa regla se repite en cada operación y cada estado nuevo obliga a revisarlos todos. Con State, cada estado es una clase que dice qué transiciones permite (interfaz sealed) y la entidad solo le pide el cambio al estado actual. Un estado `COMPLETED` sería una clase más. Además se revisa antes de cobrar: si no se puede confirmar, no se llama al proveedor.
 
-Con State, cada estado (`PENDING_PAYMENT`, `CONFIRMED`, `CANCELLED`) es una clase que dice qué transiciones permite; la interfaz es sealed, así que el compilador conoce todos los estados. La entidad solo le pide al estado actual que haga la transición y, si no se puede, sale una excepción que termina en 409. Agregar un estado `COMPLETED` sería una clase más, sin tocar el servicio. Además lo uso antes de cobrar: si la reserva no se puede confirmar, ni siquiera se llama al proveedor de pagos.
+### Patrón Observer: notificación asíncrona
+Confirmar dispara cosas que no son parte de confirmar: hoy la notificación, mañana quizá una factura. El servicio publica `ReservationConfirmedEvent` y cada interesado se suscribe, sin tocar `ReservationService`. El listener usa `@TransactionalEventListener(AFTER_COMMIT)` y `@Async`: solo notifica lo que quedó guardado y no hace esperar al usuario. Por ahora es un log. El punto débil: si la app cae entre el commit y el envío, esa notificación se pierde; para evitarlo haría falta un outbox.
 
-### Patrón Observer
-Confirmar una reserva dispara cosas que no son parte de confirmar: hoy la notificación, mañana quizá una factura o una métrica. Si el servicio las llamara una por una, cada nueva reacción tocaría `ReservationService`. Con eventos, el servicio publica `ReservationConfirmedEvent` y cada interesado se suscribe por su cuenta.
-
-### Idempotency-Key
-Crear una reserva exige la cabecera `Idempotency-Key`. Si el cliente reintenta con la misma clave (por un timeout, por ejemplo), recibe la reserva que ya se creó en vez de una duplicada.
+### Idempotency-Key al crear reservas
+Si el cliente reintenta con la misma clave (por un timeout, por ejemplo), recibe la reserva ya creada en vez de una duplicada.
 
 ### Pago con circuit breaker
-La llamada al proveedor de pagos se hace fuera de la transacción, para no tener una conexión a la base ocupada mientras esperamos una respuesta que puede tardar. Solo cuando el pago se aprueba se abre una transacción corta para pasarla a `CONFIRMED`. Si el proveedor falla, tarda más de 2 s o el circuito está abierto, la reserva se queda en `PENDING_PAYMENT`, se responde 202 y se puede reintentar después. Un pago rechazado no es culpa del proveedor, así que ahí respondo 422 y no cuenta como fallo del circuito. El estado del circuito aparece en `/actuator/health`, pero no lo pone en DOWN: no quiero que Render reinicie la app porque un tercero esté caído.
+La llamada al proveedor va fuera de la transacción, para no tener una conexión a la base ocupada mientras espera. Si se aprueba, una transacción corta pasa la reserva a `CONFIRMED`. Si el proveedor falla, tarda más de 2 s o el circuito está abierto, la reserva sigue en `PENDING_PAYMENT` y se responde 202. Un rechazo no es culpa del proveedor: responde 422 y no cuenta para el circuito. El circuito se ve en `/actuator/health` pero no lo pone en DOWN, para que Render no reinicie la app por culpa de un tercero.
 
 ### Método de pago y reintentos
-`confirm` recibe el método de pago: una tarjeta ya tokenizada (nunca el número de la tarjeta) o una cuenta para transferencia. Es una interfaz sealed con un record por tipo, y Jackson elige cuál según el campo `type`. Así cada método tiene sus propias validaciones y agregar uno nuevo es agregar un record, sin tocar un `if` por tipo.
+`confirm` recibe una tarjeta tokenizada (nunca el número) o una cuenta para transferencia. Cada tipo es un record con sus validaciones y Jackson elige según el campo `type`: un método nuevo es un record más, sin `if` por tipo.
 
-Si el proveedor responde 5xx, lo reintento una vez (Resilience4j Retry, que envuelve al circuit breaker). Los timeouts no los reintento: ya costaron 2 s y el usuario esperaría el doble. Reintentar un cobro solo es seguro si el proveedor no cobra dos veces, así que cada llamada lleva un `Idempotency-Key` que sale de la reserva y del método de pago: el mismo cobro repetido lleva la misma clave, y pagar con otra tarjeta genera una nueva.
+Si el proveedor responde 5xx, reintento una vez; los timeouts no, porque el usuario esperaría el doble. Reintentar un cobro solo es seguro si no se cobra dos veces, así que cada llamada lleva un `Idempotency-Key` que sale de la reserva y del método: el mismo cobro lleva la misma clave, otra tarjeta genera una nueva.
 
-Cada llamada al proveedor queda en `payment_attempts` (método enmascarado, resultado, motivo de rechazo, referencia y cuánto tardó), y se consulta con `GET /reservations/{id}/payments`. Sirve para soporte y auditoría: si alguien dice "me cobraron", ahí se ve qué pasó. El token o la cuenta nunca se guardan ni se loguean completos, solo los últimos 4 caracteres. También hay un contador `payments.attempts` por resultado y método en `/actuator/metrics`.
-
-### Notificación con eventos (Observer)
-Al confirmar, el servicio publica un `ReservationConfirmedEvent` y se olvida. `ReservationNotificationListener` lo escucha con `@TransactionalEventListener(AFTER_COMMIT)` y `@Async`: solo notifica si la confirmación de verdad quedó guardada y no hace esperar al usuario. Por ahora la "notificación" es un log. Cambiarla por un email o una cola no obliga a tocar nada de reservas. El pool de hilos se configura en `spring.task.execution` y el correlation id se mantiene en los logs del hilo asíncrono. El punto débil: si la app se cae justo entre el commit y el envío, esa notificación se pierde. Para garantizarla haría falta un outbox.
+Cada intento queda en `payment_attempts` y se ve en `GET /reservations/{id}/payments`: si alguien dice "me cobraron", ahí está lo que pasó. El token o la cuenta nunca se guardan ni se loguean completos, solo los últimos 4 caracteres.
 
 ### Reporte de ocupación con caché
-`GET /reports/occupancy?from=...&to=...` (con `spaceId` opcional) saca en una sola consulta las horas reservadas de cada espacio dentro del rango, recortando las reservas que empiezan antes o terminan después, y las divide entre 24 h por día (UTC). Solo cuento las `CONFIRMED`, porque una pendiente puede no pagarse nunca. El resultado se guarda con `@Cacheable` y se limpia con `@CacheEvict` cuando se confirma o cancela una reserva o cambia un espacio. El cache manager es transaccional: la limpieza espera al commit, así un reporte que se pida justo en medio no vuelve a guardar datos viejos. La caché es en memoria; con varias instancias habría que pasarla a Redis.
+Una sola consulta suma las horas confirmadas de cada espacio dentro del rango (recortando las reservas que cruzan los bordes) y las divide entre 24 h por día en UTC. Solo cuentan las `CONFIRMED`, porque una pendiente puede no pagarse nunca. Se guarda con `@Cacheable` y se limpia con `@CacheEvict` al confirmar, cancelar o cambiar un espacio. La limpieza espera al commit, así un reporte pedido justo en medio no guarda datos viejos.
 
 ### Swagger abierto en prod
-Lo dejé accesible para que se pueda probar la API sin montar nada. En un entorno real lo cerraría desde la infraestructura (red interna o gateway), no desde el código.
+Para que se pueda probar sin montar nada. En un entorno real lo cerraría desde la infraestructura, no desde el código.
 
 ### Credenciales
-El admin inicial se crea al arrancar con `ADMIN_EMAIL` y `ADMIN_PASSWORD`, y `JWT_SECRET` firma los tokens. Los valores que aparecen en este README, en `.env.example` y en `docker-compose.yml` son solo para la evaluación. En producción irían en un gestor de secretos.
+El admin se crea al arrancar con `ADMIN_EMAIL` y `ADMIN_PASSWORD`, y `JWT_SECRET` firma los tokens. Los valores del README, `.env.example` y `docker-compose.yml` son solo para la evaluación; en producción irían en un gestor de secretos.
 
 ## Fuera de alcance y qué haría con más tiempo
 
 Dejé fuera a propósito:
 
 - Notificaciones reales (email, SMS, colas) y el outbox para no perder ninguna.
-- Un proveedor de pagos real. En Render no hay WireMock, así que ahí `confirm` siempre responde 202 y la reserva queda pendiente: es el fallback del circuit breaker, no un bug. El flujo completo del pago se ve con `docker compose up` o en los tests de integración.
+- Un proveedor de pagos real. Tanto en local como en Render el proveedor es un WireMock con respuestas fijas.
 - Reintentar solos los pagos pendientes o hacer vencer las reservas sin pagar. Hoy se reintenta llamando otra vez a `confirm`.
 - Caché compartida entre instancias (Redis).
 - Refresh tokens. El token dura 1 h, aunque bloquear a un usuario o cambiarle el rol aplica al instante.

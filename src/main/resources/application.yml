@@ -96,6 +96,19 @@ resilience4j:
 logging:
   pattern:
     correlation: "[%X{correlationId:-}] "
+  # startup noise from libraries; their warnings and errors still show
+  level:
+    org.hibernate: WARN
+    org.springframework.orm.jpa: WARN
+    org.springframework.data.repository.config: WARN
+    org.springframework.data.jpa.repository.query.QueryEnhancerFactory: WARN
+    org.springframework.cloud.context.scope.GenericScope: WARN
+    org.springframework.boot.web.servlet.context: WARN
+    org.apache.catalina: WARN
+    org.springframework.web.servlet.DispatcherServlet: WARN
+    com.zaxxer.hikari.pool.HikariPool: WARN
+    org.flywaydb.core.FlywayExecutor: WARN
+    org.flywaydb.core.internal.command.DbValidate: WARN
 
 springdoc:
   swagger-ui:
