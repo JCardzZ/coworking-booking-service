@@ -7,6 +7,7 @@ import com.cowork.booking.common.AppConstants.Messages.Validation;
 import com.cowork.booking.common.AppConstants.Problem;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.TypeMismatchException;
+import org.springframework.core.MethodParameter;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.mapping.PropertyReferenceException;
@@ -20,9 +21,13 @@ import org.springframework.lang.Nullable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.util.List;
@@ -124,6 +129,33 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return handleExceptionInternal(ex, body, headers, status, request);
     }
 
+    @Override
+    protected ResponseEntity<Object> handleServletRequestBindingException(ServletRequestBindingException ex, HttpHeaders headers,
+                                                                          HttpStatusCode status, WebRequest request) {
+        if (ex instanceof MissingRequestHeaderException missing) {
+            ProblemDetail body = ProblemDetails.of(HttpStatus.BAD_REQUEST, Common.MISSING_HEADER_TITLE,
+                    Common.MISSING_HEADER_DETAIL.formatted(missing.getHeaderName()), ErrorCodes.MISSING_HEADER);
+            return handleExceptionInternal(ex, body, headers, status, request);
+        }
+        return super.handleServletRequestBindingException(ex, headers, status, request);
+    }
+
+    // Constraints on @RequestHeader / @PathVariable parameters
+    @Override
+    protected ResponseEntity<Object> handleHandlerMethodValidationException(HandlerMethodValidationException ex, HttpHeaders headers,
+                                                                            HttpStatusCode status, WebRequest request) {
+        ProblemDetail body = ProblemDetails.of(HttpStatus.BAD_REQUEST, Common.VALIDATION_FAILED_TITLE,
+                Common.VALIDATION_FAILED_DETAIL, ErrorCodes.VALIDATION_ERROR);
+        List<Map<String, String>> errors = ex.getParameterValidationResults().stream()
+                .flatMap(result -> result.getResolvableErrors().stream().map(error -> Map.of(
+                        Problem.VIOLATION_FIELD, parameterName(result.getMethodParameter()),
+                        Problem.VIOLATION_CODE, toConstraintCode(error.getCodes() != null ? lastCode(error.getCodes()) : null),
+                        Problem.VIOLATION_MESSAGE, String.valueOf(error.getDefaultMessage()))))
+                .toList();
+        body.setProperty(Problem.ERRORS, errors);
+        return handleExceptionInternal(ex, body, headers, status, request);
+    }
+
     // Spring MVC errors (404, 405, 415...): same contract, our messages.
     @Override
     protected ResponseEntity<Object> handleExceptionInternal(Exception ex, @Nullable Object body, HttpHeaders headers,
@@ -160,6 +192,17 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 Problem.VIOLATION_FIELD, error.getField(),
                 Problem.VIOLATION_CODE, toConstraintCode(error.getCode()),
                 Problem.VIOLATION_MESSAGE, message);
+    }
+
+    // Header name for @RequestHeader, otherwise the Java parameter name
+    private static String parameterName(MethodParameter parameter) {
+        RequestHeader header = parameter.getParameterAnnotation(RequestHeader.class);
+        return header != null && !header.value().isEmpty() ? header.value() : String.valueOf(parameter.getParameterName());
+    }
+
+    // Validation codes go from specific to generic ("Pattern.x.y" ... "Pattern"): keep the constraint name
+    private static String lastCode(String[] codes) {
+        return codes[codes.length - 1];
     }
 
     // "NotBlank" -> "NOT_BLANK", "typeMismatch" -> "TYPE_MISMATCH"
