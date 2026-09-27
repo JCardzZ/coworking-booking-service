@@ -24,6 +24,27 @@ security:
   admin:
     full-name: Administrador
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+  endpoint:
+    health:
+      # status is public; component details (db, disk) only for ADMIN
+      show-details: when-authorized
+      roles: ADMIN
+  info:
+    env:
+      enabled: true
+    java:
+      enabled: true
+
+info:
+  app:
+    name: ${spring.application.name}
+    description: Microservicio de gestión de reservas de espacios de coworking
+
 logging:
   pattern:
     correlation: "[%X{correlationId:-}] "

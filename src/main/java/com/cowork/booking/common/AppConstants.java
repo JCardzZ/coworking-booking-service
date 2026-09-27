@@ -53,10 +53,14 @@ public final class AppConstants {
         public static final String EMAIL_CLAIM = "email";
         public static final String ROLE_PREFIX = "ROLE_";
         public static final String HAS_ROLE_ADMIN = "hasRole('ADMIN')";
+        public static final String ADMIN_ROLE = "ADMIN";
 
         public static final List<String> PUBLIC_PATHS = List.of(
-                "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/actuator/health/**",
+                "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/actuator/health/**", "/actuator/info",
                 Api.BASE_PATH + Api.AUTH + "/**");
+
+        /** Operational data: only for administrators. */
+        public static final List<String> ADMIN_PATHS = List.of("/actuator/metrics/**");
 
         private Security() {
         }
