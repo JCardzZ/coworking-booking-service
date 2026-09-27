@@ -19,6 +19,9 @@ repositories {
 
 ext {
     set('springCloudVersion', '2025.0.2')
+    // patched versions for CVEs found by the Trivy scan in CI
+    set('tomcat.version', '10.1.60')
+    set('postgresql.version', '42.7.12')
 }
 
 dependencies {
@@ -48,10 +51,20 @@ dependencies {
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:postgresql'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    constraints {
+        // pulled in by spring-cloud, 1.80 has critical CVEs
+        implementation 'org.bouncycastle:bcprov-jdk18on:1.85'
+    }
 }
 
 springBoot {
-    buildInfo()
+    buildInfo {
+        properties {
+            // commit sha shown in /actuator/info, CI passes it as GIT_SHA
+            additional = [commit: providers.environmentVariable('GIT_SHA').getOrElse('local')]
+        }
+    }
 }
 
 dependencyManagement {
