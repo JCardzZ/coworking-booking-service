@@ -1,0 +1,4755 @@
+{
+  "info": {
+    "name": "Coworking Booking Service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Pruebas de la API de punta a punta. Elige el entorno (Local o Render) y corre las carpetas en orden, de 00 a 05: cada request guarda lo que necesita el siguiente (tokens, ids, fechas) y trae sus propias pruebas.\n\n- 00 · Sesión: tokens del admin y del usuario. Siempre primero.\n- 01 · Flujo completo: el recorrido normal, de crear un espacio a ver la ocupación.\n- 02 · Mantenimientos: espacios, roles y usuarios.\n- 03 · Lógica de negocio: reservas, pagos y reporte cuando todo sale bien.\n- 04 · Casos de prueba: validaciones, permisos, rechazos y fallas del proveedor.\n- 05 · Operación: actuator y documentación.\n\nSe puede correr las veces que quieras, los nombres y claves se generan en cada corrida. En Render, si el servicio estaba dormido, la primera petición tarda cerca de un minuto."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{adminToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.request.headers.has('X-Correlation-Id')) {",
+          "  pm.request.headers.add({ key: 'X-Correlation-Id', value: pm.variables.replaceIn('{{$guid}}') });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/coworking-service"
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
+      "key": "userToken",
+      "value": ""
+    },
+    {
+      "key": "userEmail",
+      "value": ""
+    },
+    {
+      "key": "spaceName",
+      "value": ""
+    },
+    {
+      "key": "spaceId",
+      "value": ""
+    },
+    {
+      "key": "adminEmail",
+      "value": ""
+    },
+    {
+      "key": "adminId",
+      "value": ""
+    },
+    {
+      "key": "adminRoleId",
+      "value": ""
+    },
+    {
+      "key": "roleName",
+      "value": ""
+    },
+    {
+      "key": "roleId",
+      "value": ""
+    },
+    {
+      "key": "staffEmail",
+      "value": ""
+    },
+    {
+      "key": "staffId",
+      "value": ""
+    },
+    {
+      "key": "staffToken",
+      "value": ""
+    },
+    {
+      "key": "resSpaceName",
+      "value": ""
+    },
+    {
+      "key": "resSpaceId",
+      "value": ""
+    },
+    {
+      "key": "s0",
+      "value": ""
+    },
+    {
+      "key": "s1",
+      "value": ""
+    },
+    {
+      "key": "s2",
+      "value": ""
+    },
+    {
+      "key": "s3",
+      "value": ""
+    },
+    {
+      "key": "s5",
+      "value": ""
+    },
+    {
+      "key": "s14",
+      "value": ""
+    },
+    {
+      "key": "resKey",
+      "value": ""
+    },
+    {
+      "key": "resKey2",
+      "value": ""
+    },
+    {
+      "key": "tmpKey",
+      "value": ""
+    },
+    {
+      "key": "resId",
+      "value": ""
+    },
+    {
+      "key": "adminKey",
+      "value": ""
+    },
+    {
+      "key": "adminResId",
+      "value": ""
+    },
+    {
+      "key": "adminPassword",
+      "value": ""
+    },
+    {
+      "key": "userPassword",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "00 · Sesión",
+      "item": [
+        {
+          "name": "Registrar usuario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 creado o 409 si ya existía', () => pm.expect(pm.response.code).to.be.oneOf([201, 409]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"fullName\": \"Ana Pérez\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Login admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('adminToken', pm.response.json().accessToken);",
+                  "pm.test('tokenType Bearer', () => pm.expect(pm.response.json().tokenType).to.eql('Bearer'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Login usuario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('userToken', pm.response.json().accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Mi perfil (USER)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('rol USER', () => pm.expect(pm.response.json().role).to.eql('USER'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/users/me",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mi perfil (ADMIN)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('rol ADMIN', () => pm.expect(pm.response.json().role).to.eql('ADMIN'));",
+                  "pm.collectionVariables.set('adminId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/users/me"
+          }
+        }
+      ],
+      "description": "Corre esta carpeta primero: registra al usuario, hace login del admin y del usuario y guarda sus tokens."
+    },
+    {
+      "name": "01 · Flujo completo",
+      "item": [
+        {
+          "name": "1. El admin crea un espacio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('e2eSpaceId', pm.response.json().id);"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('e2eSpaceName', `Sala demo ${Date.now()}`);",
+                  "const day = new Date(Date.now() + 5*24*3600*1000); day.setUTCHours(10, 0, 0, 0);",
+                  "pm.collectionVariables.set('e2eStart', day.toISOString());",
+                  "pm.collectionVariables.set('e2eEnd', new Date(day.getTime() + 2*3600*1000).toISOString());",
+                  "pm.collectionVariables.set('e2eDay', day.toISOString().slice(0, 10));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/spaces",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{e2eSpaceName}}\",\n  \"type\": \"MEETING_ROOM\",\n  \"capacity\": 6,\n  \"location\": \"Piso 4\",\n  \"hourlyRate\": 20.0\n}"
+            }
+          }
+        },
+        {
+          "name": "2. El usuario reserva 2 horas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "const r = pm.response.json();",
+                  "pm.collectionVariables.set('e2eResId', r.id);",
+                  "pm.test('queda pendiente de pago', () => pm.expect(r.status).to.eql('PENDING_PAYMENT'));",
+                  "pm.test('2 h x 20 = 40', () => pm.expect(r.totalAmount).to.eql(40));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('e2eKey', pm.variables.replaceIn('{{$guid}}'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{e2eKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/reservations",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"spaceId\": {{e2eSpaceId}},\n  \"startAt\": \"{{e2eStart}}\",\n  \"endAt\": \"{{e2eEnd}}\"\n}"
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "3. Paga con tarjeta y queda confirmada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('CONFIRMED', () => pm.expect(pm.response.json().status).to.eql('CONFIRMED'));",
+                  "pm.test('trae referencia del pago', () => pm.expect(pm.response.json().paymentReference).to.match(/^pay_/));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/reservations/{{e2eResId}}/confirm",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentMethod\": {\n    \"type\": \"CARD\",\n    \"token\": \"tok_visa_4242\"\n  }\n}"
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "4. Consulta su reserva",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('sigue confirmada', () => pm.expect(pm.response.json().status).to.eql('CONFIRMED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/reservations/{{e2eResId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "5. Revisa el intento de pago",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const a = pm.response.json();",
+                  "pm.test('un intento aprobado', () => pm.expect(a.map(x => x.outcome)).to.eql(['APPROVED']));",
+                  "pm.test('tarjeta enmascarada', () => pm.expect(a[0].maskedInstrument).to.eql('****4242'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/reservations/{{e2eResId}}/payments",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "6. El admin ve la ocupación del día",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const s = pm.response.json().spaces[0];",
+                  "pm.test('2 h de 24', () => pm.expect(s.reservedHours).to.eql(2));",
+                  "pm.test('8.33 %', () => pm.expect(s.occupancyPercent).to.eql(8.33));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/reports/occupancy?from={{e2eDay}}&to={{e2eDay}}&spaceId={{e2eSpaceId}}"
+          }
+        }
+      ],
+      "description": "El recorrido normal de punta a punta: el admin crea un espacio, un usuario lo reserva y lo paga, y el admin ve la ocupación. La notificación de la reserva confirmada sale en el log de la app (\"Notificación enviada a ...\")."
+    },
+    {
+      "name": "02 · Mantenimientos",
+      "item": [
+        {
+          "name": "Espacios",
+          "item": [
+            {
+              "name": "Crear espacio (ADMIN)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 201', () => pm.response.to.have.status(201));",
+                      "pm.collectionVariables.set('spaceId', pm.response.json().id);",
+                      "pm.test('Location', () => pm.expect(pm.response.headers.get('Location')).to.include('/spaces/'));",
+                      "pm.test('auditoría', () => pm.expect(pm.response.json()).to.have.property('createdAt'));"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('spaceName', `Sala ${Date.now()}`);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/spaces",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"{{spaceName}}\",\n  \"type\": \"MEETING_ROOM\",\n  \"capacity\": 8,\n  \"location\": \"Piso 2 - Ala norte\",\n  \"hourlyRate\": 25.0\n}"
+                }
+              }
+            },
+            {
+              "name": "Listar espacios (USER)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('paginado', () => pm.expect(pm.response.json().page).to.have.property('totalElements'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/v1/spaces",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{userToken}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Listar con filtros y orden",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/v1/spaces?type=MEETING_ROOM&minCapacity=4&location=piso&page=0&size=20&sort=name,asc",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{userToken}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Obtener espacio por id (USER)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/v1/spaces/{{spaceId}}",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{userToken}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Actualizar espacio (ADMIN)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('capacidad 10', () => pm.expect(pm.response.json().capacity).to.eql(10));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/spaces/{{spaceId}}",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"{{spaceName}}\",\n  \"type\": \"MEETING_ROOM\",\n  \"capacity\": 10,\n  \"location\": \"Piso 2 - Ala norte\",\n  \"hourlyRate\": 30.0\n}"
+                }
+              }
+            }
+          ],
+          "description": "Alta, consulta, filtros y edición. El admin escribe, el usuario solo lee."
+        },
+        {
+          "name": "Roles y permisos",
+          "item": [
+            {
+              "name": "Catálogo de permisos",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('10 permisos', () => pm.expect(pm.response.json()).to.have.length(10));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/v1/admin/permissions"
+              }
+            },
+            {
+              "name": "Listar roles",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));",
+                      "const admin = pm.response.json().find(r => r.name === 'ADMIN');",
+                      "pm.test('ADMIN de sistema', () => pm.expect(admin.system).to.be.true);",
+                      "pm.collectionVariables.set('adminRoleId', admin.id);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/v1/admin/roles"
+              }
+            },
+            {
+              "name": "Crear rol (solo lectura de espacios)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 201', () => pm.response.to.have.status(201));",
+                      "pm.collectionVariables.set('roleId', pm.response.json().id);",
+                      "pm.test('nombre en mayúsculas', () => pm.expect(pm.response.json().name).to.eql(pm.collectionVariables.get('roleName').toUpperCase()));"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('roleName', `reception_${Date.now()}`);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/admin/roles",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"{{roleName}}\",\n  \"description\": \"Recepción: consulta espacios\",\n  \"permissions\": [\n    \"SPACE_READ\"\n  ]\n}"
+                }
+              }
+            }
+          ],
+          "description": "Catálogo de permisos y un rol nuevo que solo puede leer espacios."
+        },
+        {
+          "name": "Usuarios",
+          "item": [
+            {
+              "name": "Crear usuario con rol personalizado",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 201', () => pm.response.to.have.status(201));",
+                      "pm.collectionVariables.set('staffId', pm.response.json().id);"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('staffEmail', `manuel.staff+${Date.now()}@coworking.com`);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/admin/users",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{staffEmail}}\",\n  \"password\": \"Staff12345\",\n  \"fullName\": \"Manuel Staff\",\n  \"role\": \"{{roleName}}\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Listar usuarios",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('al menos 3', () => pm.expect(pm.response.json().page.totalElements).to.be.at.least(3));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/v1/admin/users?page=0&size=20&sort=email,asc"
+              }
+            },
+            {
+              "name": "Obtener usuario por id",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/v1/admin/users/{{staffId}}"
+              }
+            },
+            {
+              "name": "Login del usuario creado",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));",
+                      "pm.collectionVariables.set('staffToken', pm.response.json().accessToken);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/auth/login",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{staffEmail}}\",\n  \"password\": \"Staff12345\"\n}"
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            }
+          ],
+          "description": "El admin crea un usuario con el rol nuevo y este hace login."
+        }
+      ],
+      "description": "Lo que administra el admin: espacios, roles y usuarios."
+    },
+    {
+      "name": "03 · Lógica de negocio",
+      "item": [
+        {
+          "name": "Reservas",
+          "item": [
+            {
+              "name": "Crear espacio para reservas (ADMIN)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 201', () => pm.response.to.have.status(201));",
+                      "pm.collectionVariables.set('resSpaceId', pm.response.json().id);"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('resSpaceName', `Sala reservas ${Date.now()}`);",
+                      "const base = new Date(Date.now() + 3*24*3600*1000); base.setUTCMinutes(0,0,0);",
+                      "const iso = h => new Date(base.getTime() + h*3600*1000).toISOString();",
+                      "pm.collectionVariables.set('s0', iso(0)); pm.collectionVariables.set('s2', iso(2)); pm.collectionVariables.set('s3', iso(3));",
+                      "pm.collectionVariables.set('s1', iso(1)); pm.collectionVariables.set('s5', iso(5)); pm.collectionVariables.set('s14', iso(14));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/spaces",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"{{resSpaceName}}\",\n  \"type\": \"MEETING_ROOM\",\n  \"capacity\": 6,\n  \"location\": \"Piso 3\",\n  \"hourlyRate\": 20.0\n}"
+                }
+              }
+            },
+            {
+              "name": "Crear reserva (USER)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 201', () => pm.response.to.have.status(201));",
+                      "pm.collectionVariables.set('resId', pm.response.json().id);",
+                      "pm.test('PENDING_PAYMENT', () => pm.expect(pm.response.json().status).to.eql('PENDING_PAYMENT'));",
+                      "pm.test('importe 2h x 20', () => pm.expect(pm.response.json().totalAmount).to.eql(40));"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('resKey', pm.variables.replaceIn('{{$guid}}'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Idempotency-Key",
+                    "value": "{{resKey}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/reservations",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"spaceId\": {{resSpaceId}},\n  \"startAt\": \"{{s0}}\",\n  \"endAt\": \"{{s2}}\"\n}"
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{userToken}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Reintento con la misma Idempotency-Key",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('misma reserva', () => pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('resId')));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Idempotency-Key",
+                    "value": "{{resKey}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/reservations",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"spaceId\": {{resSpaceId}},\n  \"startAt\": \"{{s0}}\",\n  \"endAt\": \"{{s2}}\"\n}"
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{userToken}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Reserva contigua (empieza cuando termina la otra)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 201', () => pm.response.to.have.status(201));"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('resKey2', pm.variables.replaceIn('{{$guid}}'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Idempotency-Key",
+                    "value": "{{resKey2}}"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/reservations",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"spaceId\": {{resSpaceId}},\n  \"startAt\": \"{{s2}}\",\n  \"endAt\": \"{{s3}}\"\n}"
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{userToken}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Listar mis reservas",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('2 reservas', () => pm.expect(pm.response.json().page.totalElements).to.eql(2));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/v1/reservations?spaceId={{resSpaceId}}",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{userToken}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Obtener mi reserva",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/v1/reservations/{{resId}}",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{userToken}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "description": "Crear, reintentar con la misma Idempotency-Key, reservar el horario siguiente y consultar."
+        },
+        {
+          "name": "Pago y confirmación",
+          "item": [
+            {
+              "name": "Pago aprobado",
+              "item": [
+                {
+                  "name": "Espacio con tarifa 20",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 201', () => pm.response.to.have.status(201));",
+                          "pm.collectionVariables.set('payOkSpaceId', pm.response.json().id);"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.collectionVariables.set('payOkName', `Pago Ok ${Date.now()}`);"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/spaces",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"name\": \"{{payOkName}}\",\n  \"type\": \"DESK\",\n  \"capacity\": 1,\n  \"location\": \"Piso 1\",\n  \"hourlyRate\": 20\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Reserva de 1h (importe 20)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 201', () => pm.response.to.have.status(201));",
+                          "pm.collectionVariables.set('payOkResId', pm.response.json().id);"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.collectionVariables.set('tmpKey', pm.variables.replaceIn('{{$guid}}'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Idempotency-Key",
+                        "value": "{{tmpKey}}"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"spaceId\": {{payOkSpaceId}},\n  \"startAt\": \"{{s0}}\",\n  \"endAt\": \"{{s1}}\"\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Confirmar",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 200', () => pm.response.to.have.status(200));",
+                          "pm.test('CONFIRMED', () => pm.expect(pm.response.json().status).to.eql('CONFIRMED'));",
+                          "pm.test('referencia del pago', () => pm.expect(pm.response.json().paymentReference).to.match(/^pay_/));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations/{{payOkResId}}/confirm",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"paymentMethod\": {\n    \"type\": \"CARD\",\n    \"token\": \"tok_visa_4242\"\n  }\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Confirmar otra vez",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 409', () => pm.response.to.have.status(409));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations/{{payOkResId}}/confirm",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"paymentMethod\": {\n    \"type\": \"CARD\",\n    \"token\": \"tok_visa_4242\"\n  }\n}"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Pago rechazado y reintento con otra tarjeta",
+              "item": [
+                {
+                  "name": "Espacio con tarifa 20",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 201', () => pm.response.to.have.status(201));",
+                          "pm.collectionVariables.set('payDeclinedSpaceId', pm.response.json().id);"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.collectionVariables.set('payDeclinedName', `Pago Declined ${Date.now()}`);"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/spaces",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"name\": \"{{payDeclinedName}}\",\n  \"type\": \"DESK\",\n  \"capacity\": 1,\n  \"location\": \"Piso 1\",\n  \"hourlyRate\": 20\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Reserva de 1h (importe 20)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 201', () => pm.response.to.have.status(201));",
+                          "pm.collectionVariables.set('payDeclinedResId', pm.response.json().id);"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.collectionVariables.set('tmpKey', pm.variables.replaceIn('{{$guid}}'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Idempotency-Key",
+                        "value": "{{tmpKey}}"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"spaceId\": {{payDeclinedSpaceId}},\n  \"startAt\": \"{{s0}}\",\n  \"endAt\": \"{{s1}}\"\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Confirmar con tarjeta sin fondos",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 422', () => pm.response.to.have.status(422));",
+                          "pm.test('PAYMENT_INSUFFICIENT_FUNDS', () => pm.expect(pm.response.json().code).to.eql('PAYMENT_INSUFFICIENT_FUNDS'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations/{{payDeclinedResId}}/confirm",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"paymentMethod\": {\n    \"type\": \"CARD\",\n    \"token\": \"tok_insufficient_funds\"\n  }\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Pagar con otra tarjeta",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 200', () => pm.response.to.have.status(200));",
+                          "pm.test('CONFIRMED', () => pm.expect(pm.response.json().status).to.eql('CONFIRMED'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations/{{payDeclinedResId}}/confirm",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"paymentMethod\": {\n    \"type\": \"CARD\",\n    \"token\": \"tok_visa_4242\"\n  }\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Historial de intentos",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 200', () => pm.response.to.have.status(200));",
+                          "const a = pm.response.json();",
+                          "pm.test('2 intentos', () => pm.expect(a).to.have.length(2));",
+                          "pm.test('primero rechazado', () => pm.expect(a[0].declineReason).to.eql('INSUFFICIENT_FUNDS'));",
+                          "pm.test('método enmascarado', () => pm.expect(a[1].maskedInstrument).to.eql('****4242'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/reservations/{{payDeclinedResId}}/payments"
+                  }
+                }
+              ],
+              "description": "Primero falla por fondos, luego paga con otra tarjeta. El historial muestra los dos intentos."
+            },
+            {
+              "name": "Transferencia aprobada",
+              "item": [
+                {
+                  "name": "Espacio",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 201', () => pm.response.to.have.status(201));",
+                          "pm.collectionVariables.set('pmBankSpaceId', pm.response.json().id);"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.collectionVariables.set('pmBankName', `Metodo Bank ${Date.now()}`);"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/spaces",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"name\": \"{{pmBankName}}\",\n  \"type\": \"DESK\",\n  \"capacity\": 1,\n  \"location\": \"Piso 1\",\n  \"hourlyRate\": 20\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Reserva",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 201', () => pm.response.to.have.status(201));",
+                          "pm.collectionVariables.set('pmBankResId', pm.response.json().id);"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.collectionVariables.set('tmpKey', pm.variables.replaceIn('{{$guid}}'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Idempotency-Key",
+                        "value": "{{tmpKey}}"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"spaceId\": {{pmBankSpaceId}},\n  \"startAt\": \"{{s0}}\",\n  \"endAt\": \"{{s1}}\"\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Confirmar",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 200', () => pm.response.to.have.status(200));",
+                          "pm.test('CONFIRMED', () => pm.expect(pm.response.json().status).to.eql('CONFIRMED'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations/{{pmBankResId}}/confirm",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"paymentMethod\": {\n    \"type\": \"BANK_TRANSFER\",\n    \"accountNumber\": \"SV62CENR00000000000000700025\"\n  }\n}"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "description": "Cada confirmación manda un método de pago y el mock de pagos responde según lo que recibe: tok_insufficient_funds, tok_expired y las cuentas SV00... se rechazan; una reserva de 555 recibe un 503 (se reintenta una vez) y una de 333 tarda 3 s. El resto se aprueba."
+        },
+        {
+          "name": "Reporte de ocupación",
+          "item": [
+            {
+              "name": "Ocupación de todos los espacios",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('lista de espacios', () => pm.expect(pm.response.json().spaces).to.be.an('array'));"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const d = new Date(Date.now() + 3*24*3600*1000).toISOString().slice(0,10);",
+                      "pm.collectionVariables.set('reportDay', d);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/v1/reports/occupancy?from={{reportDay}}&to={{reportDay}}"
+              }
+            },
+            {
+              "name": "Ocupación de un espacio",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));",
+                      "const s = pm.response.json().spaces;",
+                      "pm.test('un espacio', () => pm.expect(s).to.have.length(1));",
+                      "pm.test('1 h confirmada de 24', () => pm.expect(s[0].occupancyPercent).to.eql(4.17));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/v1/reports/occupancy?from={{reportDay}}&to={{reportDay}}&spaceId={{payOkSpaceId}}"
+              }
+            }
+          ],
+          "description": "Ocupación por espacio: horas confirmadas sobre 24 h por día (UTC). Solo el admin. El resultado se cachea y se refresca al confirmar o cancelar."
+        }
+      ],
+      "description": "Los flujos del negocio cuando todo sale bien."
+    },
+    {
+      "name": "04 · Casos de prueba",
+      "item": [
+        {
+          "name": "Login y registro",
+          "item": [
+            {
+              "name": "Registro con email duplicado",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 409', () => pm.response.to.have.status(409));",
+                      "pm.test('code EMAIL_TAKEN', () => pm.expect(pm.response.json().code).to.eql('EMAIL_TAKEN'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/auth/register",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"fullName\": \"Ana\"\n}"
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "Registro con datos inválidos",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 400', () => pm.response.to.have.status(400));",
+                      "pm.test('code VALIDATION_ERROR', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));",
+                      "pm.test('3 campos inválidos', () => pm.expect(pm.response.json().errors).to.have.length(3));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/auth/register",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"no-es-email\",\n  \"password\": \"123\",\n  \"fullName\": \"\"\n}"
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "Login con contraseña incorrecta",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 401', () => pm.response.to.have.status(401));",
+                      "pm.test('code INVALID_CREDENTIALS', () => pm.expect(pm.response.json().code).to.eql('INVALID_CREDENTIALS'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/auth/login",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"incorrecta\"\n}"
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "Login con email inexistente (mismo error)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 401', () => pm.response.to.have.status(401));",
+                      "pm.test('code INVALID_CREDENTIALS', () => pm.expect(pm.response.json().code).to.eql('INVALID_CREDENTIALS'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/auth/login",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"nadie@coworking.com\",\n  \"password\": \"{{userPassword}}\"\n}"
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "Login con JSON mal formado",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 400', () => pm.response.to.have.status(400));",
+                      "pm.test('code MALFORMED_REQUEST', () => pm.expect(pm.response.json().code).to.eql('MALFORMED_REQUEST'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/auth/login",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"email\": "
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Espacios",
+          "item": [
+            {
+              "name": "Permisos",
+              "item": [
+                {
+                  "name": "Listar sin token",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 401', () => pm.response.to.have.status(401));",
+                          "pm.test('code UNAUTHORIZED', () => pm.expect(pm.response.json().code).to.eql('UNAUTHORIZED'));",
+                          "pm.test('WWW-Authenticate', () => pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/spaces",
+                    "auth": {
+                      "type": "noauth"
+                    }
+                  }
+                },
+                {
+                  "name": "Listar con token inválido",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 401', () => pm.response.to.have.status(401));",
+                          "pm.test('code UNAUTHORIZED', () => pm.expect(pm.response.json().code).to.eql('UNAUTHORIZED'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/spaces",
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "token-invalido",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Crear como USER",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 403', () => pm.response.to.have.status(403));",
+                          "pm.test('code FORBIDDEN', () => pm.expect(pm.response.json().code).to.eql('FORBIDDEN'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/spaces",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"name\": \"{{spaceName}}\",\n  \"type\": \"MEETING_ROOM\",\n  \"capacity\": 8,\n  \"location\": \"Piso 2 - Ala norte\",\n  \"hourlyRate\": 25.0\n}"
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Eliminar como USER",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 403', () => pm.response.to.have.status(403));",
+                          "pm.test('code FORBIDDEN', () => pm.expect(pm.response.json().code).to.eql('FORBIDDEN'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "DELETE",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/spaces/{{spaceId}}",
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Validaciones",
+              "item": [
+                {
+                  "name": "Crear con datos inválidos",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 400', () => pm.response.to.have.status(400));",
+                          "pm.test('code VALIDATION_ERROR', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/spaces",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"name\": \"\",\n  \"type\": \"MEETING_ROOM\",\n  \"capacity\": 0,\n  \"location\": \"Piso 1\",\n  \"hourlyRate\": -5\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Crear con más de 2 decimales",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 400', () => pm.response.to.have.status(400));",
+                          "pm.test('code VALIDATION_ERROR', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/spaces",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"name\": \"Sala decimales\",\n  \"type\": \"MEETING_ROOM\",\n  \"capacity\": 8,\n  \"location\": \"Piso 2 - Ala norte\",\n  \"hourlyRate\": 1.234\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Crear con nombre duplicado (sin distinguir mayúsculas)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 409', () => pm.response.to.have.status(409));",
+                          "pm.test('code SPACE_NAME_TAKEN', () => pm.expect(pm.response.json().code).to.eql('SPACE_NAME_TAKEN'));",
+                          "pm.test('conflictingField name', () => pm.expect(pm.response.json().conflictingField).to.eql('name'));"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.variables.set('upperName', pm.collectionVariables.get('spaceName').toUpperCase());"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/spaces",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"name\": \"{{upperName}}\",\n  \"type\": \"MEETING_ROOM\",\n  \"capacity\": 8,\n  \"location\": \"Piso 2 - Ala norte\",\n  \"hourlyRate\": 25.0\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Crear con tipo inexistente",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 400', () => pm.response.to.have.status(400));",
+                          "pm.test('code MALFORMED_REQUEST', () => pm.expect(pm.response.json().code).to.eql('MALFORMED_REQUEST'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/spaces",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"name\": \"{{spaceName}}\",\n  \"type\": \"KITCHEN\",\n  \"capacity\": 8,\n  \"location\": \"Piso 2 - Ala norte\",\n  \"hourlyRate\": 25.0\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Filtrar con tipo inexistente",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 400', () => pm.response.to.have.status(400));",
+                          "pm.test('code VALIDATION_ERROR', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/spaces?type=KITCHEN",
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Ordenar por campo inexistente",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 400', () => pm.response.to.have.status(400));",
+                          "pm.test('code INVALID_SORT', () => pm.expect(pm.response.json().code).to.eql('INVALID_SORT'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/spaces?sort=foo",
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Id no numérico",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 400', () => pm.response.to.have.status(400));",
+                          "pm.test('code INVALID_PARAMETER', () => pm.expect(pm.response.json().code).to.eql('INVALID_PARAMETER'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/spaces/abc",
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Espacio inexistente",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 404', () => pm.response.to.have.status(404));",
+                          "pm.test('code RESOURCE_NOT_FOUND', () => pm.expect(pm.response.json().code).to.eql('RESOURCE_NOT_FOUND'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/spaces/999999",
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Método no permitido",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 405', () => pm.response.to.have.status(405));",
+                          "pm.test('code METHOD_NOT_ALLOWED', () => pm.expect(pm.response.json().code).to.eql('METHOD_NOT_ALLOWED'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "PATCH",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/spaces/{{spaceId}}"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Trazabilidad",
+              "item": [
+                {
+                  "name": "X-Correlation-Id propio se devuelve",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 404', () => pm.response.to.have.status(404));",
+                          "pm.test('header', () => pm.expect(pm.response.headers.get('X-Correlation-Id')).to.eql('postman-trace-001'));",
+                          "pm.test('traceId', () => pm.expect(pm.response.json().traceId).to.eql('postman-trace-001'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "X-Correlation-Id",
+                        "value": "postman-trace-001"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/spaces/999999",
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Borrado lógico",
+              "item": [
+                {
+                  "name": "Eliminar espacio (ADMIN)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 204', () => pm.response.to.have.status(204));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "DELETE",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/spaces/{{spaceId}}"
+                  }
+                },
+                {
+                  "name": "Obtener tras eliminar",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 404', () => pm.response.to.have.status(404));",
+                          "pm.test('code RESOURCE_NOT_FOUND', () => pm.expect(pm.response.json().code).to.eql('RESOURCE_NOT_FOUND'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/spaces/{{spaceId}}",
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Recrear con el mismo nombre",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 201', () => pm.response.to.have.status(201));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/spaces",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"name\": \"{{spaceName}}\",\n  \"type\": \"MEETING_ROOM\",\n  \"capacity\": 8,\n  \"location\": \"Piso 2 - Ala norte\",\n  \"hourlyRate\": 25.0\n}"
+                    }
+                  }
+                }
+              ],
+              "description": "Eliminar solo desactiva el espacio, y su nombre queda libre para uno nuevo."
+            }
+          ]
+        },
+        {
+          "name": "Permisos que cambian al momento",
+          "description": "El mismo token gana permisos en cuanto cambia su rol, sin volver a hacer login.",
+          "item": [
+            {
+              "name": "Staff lee espacios (SPACE_READ)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/v1/spaces",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{staffToken}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Staff NO puede crear espacios",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 403', () => pm.response.to.have.status(403));",
+                      "pm.test('code FORBIDDEN', () => pm.expect(pm.response.json().code).to.eql('FORBIDDEN'));"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.variables.set('staffSpace', `Sala staff ${Date.now()}`);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/spaces",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"{{staffSpace}}\",\n  \"type\": \"DESK\",\n  \"capacity\": 1,\n  \"location\": \"Piso 1\",\n  \"hourlyRate\": 5\n}"
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{staffToken}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Añadir SPACE_WRITE al rol",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('incluye SPACE_WRITE', () => pm.expect(pm.response.json().permissions).to.include('SPACE_WRITE'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/admin/roles/{{roleId}}/permissions",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"permissions\": [\n    \"SPACE_READ\",\n    \"SPACE_WRITE\"\n  ]\n}"
+                }
+              }
+            },
+            {
+              "name": "Staff ya puede crear (mismo token)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 201', () => pm.response.to.have.status(201));"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.variables.set('staffSpace', `Sala staff ${Date.now()}`);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/spaces",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"{{staffSpace}}\",\n  \"type\": \"DESK\",\n  \"capacity\": 1,\n  \"location\": \"Piso 1\",\n  \"hourlyRate\": 5\n}"
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{staffToken}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bloqueo de cuentas",
+          "item": [
+            {
+              "name": "Bloquear usuario",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('DISABLED', () => pm.expect(pm.response.json().status).to.eql('DISABLED'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/admin/users/{{staffId}}/status",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"DISABLED\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Token del bloqueado deja de valer",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 401', () => pm.response.to.have.status(401));",
+                      "pm.test('code UNAUTHORIZED', () => pm.expect(pm.response.json().code).to.eql('UNAUTHORIZED'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/v1/spaces",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{staffToken}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Login del bloqueado",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 401', () => pm.response.to.have.status(401));",
+                      "pm.test('code ACCOUNT_DISABLED', () => pm.expect(pm.response.json().code).to.eql('ACCOUNT_DISABLED'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/auth/login",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{staffEmail}}\",\n  \"password\": \"Staff12345\"\n}"
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "Reactivar usuario",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/admin/users/{{staffId}}/status",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"ACTIVE\"\n}"
+                }
+              }
+            }
+          ],
+          "description": "Un usuario bloqueado pierde el acceso al momento, aunque su token no haya vencido."
+        },
+        {
+          "name": "Administración",
+          "item": [
+            {
+              "name": "Validaciones",
+              "item": [
+                {
+                  "name": "Crear rol duplicado",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 409', () => pm.response.to.have.status(409));",
+                          "pm.test('code ROLE_NAME_TAKEN', () => pm.expect(pm.response.json().code).to.eql('ROLE_NAME_TAKEN'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/admin/roles",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"name\": \"{{roleName}}\",\n  \"description\": \"dup\",\n  \"permissions\": [\n    \"SPACE_READ\"\n  ]\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Crear rol con permiso inexistente",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 422', () => pm.response.to.have.status(422));",
+                          "pm.test('code UNKNOWN_PERMISSION', () => pm.expect(pm.response.json().code).to.eql('UNKNOWN_PERMISSION'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/admin/roles",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"name\": \"GHOST_ROLE\",\n  \"description\": \"x\",\n  \"permissions\": [\n    \"SPACE_READ\",\n    \"FLY_TO_MOON\"\n  ]\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Crear rol con nombre inválido",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 400', () => pm.response.to.have.status(400));",
+                          "pm.test('code VALIDATION_ERROR', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/admin/roles",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"name\": \"rol-1\",\n  \"description\": \"x\",\n  \"permissions\": [\n    \"SPACE_READ\"\n  ]\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Quitar RBAC_MANAGE al ADMIN",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 422', () => pm.response.to.have.status(422));",
+                          "pm.test('code ADMIN_ROLE_LOCKOUT', () => pm.expect(pm.response.json().code).to.eql('ADMIN_ROLE_LOCKOUT'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/admin/roles/{{adminRoleId}}/permissions",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"permissions\": [\n    \"SPACE_READ\"\n  ]\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Crear usuario con rol inexistente",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 422', () => pm.response.to.have.status(422));",
+                          "pm.test('code UNKNOWN_ROLE', () => pm.expect(pm.response.json().code).to.eql('UNKNOWN_ROLE'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/admin/users",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"email\": \"nadie@coworking.com\",\n  \"password\": \"{{userPassword}}\",\n  \"fullName\": \"Nadie\",\n  \"role\": \"GHOST\"\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Crear usuario con email existente",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 409', () => pm.response.to.have.status(409));",
+                          "pm.test('code EMAIL_TAKEN', () => pm.expect(pm.response.json().code).to.eql('EMAIL_TAKEN'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/admin/users",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"fullName\": \"Dup\",\n  \"role\": \"USER\"\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Admin se bloquea a sí mismo",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 422', () => pm.response.to.have.status(422));",
+                          "pm.test('code SELF_STATUS_CHANGE', () => pm.expect(pm.response.json().code).to.eql('SELF_STATUS_CHANGE'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/admin/users/{{adminId}}/status",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"status\": \"DISABLED\"\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Usuario inexistente",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 404', () => pm.response.to.have.status(404));",
+                          "pm.test('code RESOURCE_NOT_FOUND', () => pm.expect(pm.response.json().code).to.eql('RESOURCE_NOT_FOUND'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/admin/users/999999"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Permisos",
+              "item": [
+                {
+                  "name": "USER lista usuarios",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 403', () => pm.response.to.have.status(403));",
+                          "pm.test('code FORBIDDEN', () => pm.expect(pm.response.json().code).to.eql('FORBIDDEN'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/admin/users",
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "USER lista roles",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 403', () => pm.response.to.have.status(403));",
+                          "pm.test('code FORBIDDEN', () => pm.expect(pm.response.json().code).to.eql('FORBIDDEN'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/admin/roles",
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Sin token",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 401', () => pm.response.to.have.status(401));",
+                          "pm.test('code UNAUTHORIZED', () => pm.expect(pm.response.json().code).to.eql('UNAUTHORIZED'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/admin/users",
+                    "auth": {
+                      "type": "noauth"
+                    }
+                  }
+                },
+                {
+                  "name": "Mi perfil sin token",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 401', () => pm.response.to.have.status(401));",
+                          "pm.test('code UNAUTHORIZED', () => pm.expect(pm.response.json().code).to.eql('UNAUTHORIZED'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/users/me",
+                    "auth": {
+                      "type": "noauth"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Reservas",
+          "item": [
+            {
+              "name": "Validaciones",
+              "item": [
+                {
+                  "name": "Horario solapado",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 409', () => pm.response.to.have.status(409));",
+                          "pm.test('code RESERVATION_OVERLAP', () => pm.expect(pm.response.json().code).to.eql('RESERVATION_OVERLAP'));"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.collectionVariables.set('tmpKey', pm.variables.replaceIn('{{$guid}}'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Idempotency-Key",
+                        "value": "{{tmpKey}}"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"spaceId\": {{resSpaceId}},\n  \"startAt\": \"{{s1}}\",\n  \"endAt\": \"{{s3}}\"\n}"
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Misma Idempotency-Key con otros datos",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 422', () => pm.response.to.have.status(422));",
+                          "pm.test('code IDEMPOTENCY_KEY_REUSED', () => pm.expect(pm.response.json().code).to.eql('IDEMPOTENCY_KEY_REUSED'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Idempotency-Key",
+                        "value": "{{resKey}}"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"spaceId\": {{resSpaceId}},\n  \"startAt\": \"{{s5}}\",\n  \"endAt\": \"{{s14}}\"\n}"
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Inicio en el pasado",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 422', () => pm.response.to.have.status(422));",
+                          "pm.test('code RESERVATION_IN_PAST', () => pm.expect(pm.response.json().code).to.eql('RESERVATION_IN_PAST'));"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.collectionVariables.set('tmpKey', pm.variables.replaceIn('{{$guid}}'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Idempotency-Key",
+                        "value": "{{tmpKey}}"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"spaceId\": {{resSpaceId}},\n  \"startAt\": \"2020-01-01T09:00:00Z\",\n  \"endAt\": \"2020-01-01T10:00:00Z\"\n}"
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Más de 12 horas",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 422', () => pm.response.to.have.status(422));",
+                          "pm.test('code RESERVATION_TOO_LONG', () => pm.expect(pm.response.json().code).to.eql('RESERVATION_TOO_LONG'));"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.collectionVariables.set('tmpKey', pm.variables.replaceIn('{{$guid}}'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Idempotency-Key",
+                        "value": "{{tmpKey}}"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"spaceId\": {{resSpaceId}},\n  \"startAt\": \"{{s0}}\",\n  \"endAt\": \"{{s14}}\"\n}"
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Fin antes del inicio",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 400', () => pm.response.to.have.status(400));",
+                          "pm.test('code VALIDATION_ERROR', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.collectionVariables.set('tmpKey', pm.variables.replaceIn('{{$guid}}'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Idempotency-Key",
+                        "value": "{{tmpKey}}"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"spaceId\": {{resSpaceId}},\n  \"startAt\": \"{{s3}}\",\n  \"endAt\": \"{{s1}}\"\n}"
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Sin Idempotency-Key",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 400', () => pm.response.to.have.status(400));",
+                          "pm.test('code MISSING_HEADER', () => pm.expect(pm.response.json().code).to.eql('MISSING_HEADER'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"spaceId\": {{resSpaceId}},\n  \"startAt\": \"{{s5}}\",\n  \"endAt\": \"{{s14}}\"\n}"
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Idempotency-Key inválida",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 400', () => pm.response.to.have.status(400));",
+                          "pm.test('code VALIDATION_ERROR', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Idempotency-Key",
+                        "value": "corta"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"spaceId\": {{resSpaceId}},\n  \"startAt\": \"{{s5}}\",\n  \"endAt\": \"{{s14}}\"\n}"
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Espacio inexistente",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 404', () => pm.response.to.have.status(404));",
+                          "pm.test('code RESOURCE_NOT_FOUND', () => pm.expect(pm.response.json().code).to.eql('RESOURCE_NOT_FOUND'));"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.collectionVariables.set('tmpKey', pm.variables.replaceIn('{{$guid}}'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Idempotency-Key",
+                        "value": "{{tmpKey}}"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"spaceId\": 999999,\n  \"startAt\": \"{{s5}}\",\n  \"endAt\": \"{{s14}}\"\n}"
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Visibilidad y permisos",
+              "item": [
+                {
+                  "name": "ADMIN reserva para sí",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 201', () => pm.response.to.have.status(201));",
+                          "pm.collectionVariables.set('adminResId', pm.response.json().id);"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.collectionVariables.set('adminKey', pm.variables.replaceIn('{{$guid}}'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Idempotency-Key",
+                        "value": "{{adminKey}}"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"spaceId\": {{resSpaceId}},\n  \"startAt\": \"{{s5}}\",\n  \"endAt\": \"{{s14}}\"\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "USER no ve la reserva de otro",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 404', () => pm.response.to.have.status(404));",
+                          "pm.test('code RESOURCE_NOT_FOUND', () => pm.expect(pm.response.json().code).to.eql('RESOURCE_NOT_FOUND'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/reservations/{{adminResId}}",
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "USER no cancela la reserva de otro",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 404', () => pm.response.to.have.status(404));",
+                          "pm.test('code RESOURCE_NOT_FOUND', () => pm.expect(pm.response.json().code).to.eql('RESOURCE_NOT_FOUND'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/reservations/{{adminResId}}/cancel",
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "ADMIN ve todas (READ_ALL)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 200', () => pm.response.to.have.status(200));",
+                          "pm.test('3 reservas', () => pm.expect(pm.response.json().page.totalElements).to.eql(3));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/reservations?spaceId={{resSpaceId}}"
+                  }
+                },
+                {
+                  "name": "ADMIN ve la reserva del USER",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 200', () => pm.response.to.have.status(200));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/reservations/{{resId}}"
+                  }
+                },
+                {
+                  "name": "Sin token",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 401', () => pm.response.to.have.status(401));",
+                          "pm.test('code UNAUTHORIZED', () => pm.expect(pm.response.json().code).to.eql('UNAUTHORIZED'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/reservations",
+                    "auth": {
+                      "type": "noauth"
+                    }
+                  }
+                }
+              ],
+              "description": "Un usuario no ve ni toca reservas ajenas (responde 404, no 403, para no revelar que existen). El admin ve todas."
+            },
+            {
+              "name": "Cancelación",
+              "item": [
+                {
+                  "name": "Cancelar mi reserva",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 200', () => pm.response.to.have.status(200));",
+                          "pm.test('CANCELLED', () => pm.expect(pm.response.json().status).to.eql('CANCELLED'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/reservations/{{resId}}/cancel",
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Cancelar otra vez",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 409', () => pm.response.to.have.status(409));",
+                          "pm.test('code INVALID_RESERVATION_STATE', () => pm.expect(pm.response.json().code).to.eql('INVALID_RESERVATION_STATE'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/reservations/{{resId}}/cancel",
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "El horario quedó libre",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 201', () => pm.response.to.have.status(201));"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.collectionVariables.set('tmpKey', pm.variables.replaceIn('{{$guid}}'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Idempotency-Key",
+                        "value": "{{tmpKey}}"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"spaceId\": {{resSpaceId}},\n  \"startAt\": \"{{s0}}\",\n  \"endAt\": \"{{s2}}\"\n}"
+                    },
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "ADMIN cancela la reserva de otro (MANAGE_ALL)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 200', () => pm.response.to.have.status(200));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/reservations/{{adminResId}}/cancel"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Pagos rechazados",
+          "item": [
+            {
+              "name": "Tarjeta vencida",
+              "item": [
+                {
+                  "name": "Espacio",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 201', () => pm.response.to.have.status(201));",
+                          "pm.collectionVariables.set('pmExpiredSpaceId', pm.response.json().id);"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.collectionVariables.set('pmExpiredName', `Metodo Expired ${Date.now()}`);"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/spaces",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"name\": \"{{pmExpiredName}}\",\n  \"type\": \"DESK\",\n  \"capacity\": 1,\n  \"location\": \"Piso 1\",\n  \"hourlyRate\": 20\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Reserva",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 201', () => pm.response.to.have.status(201));",
+                          "pm.collectionVariables.set('pmExpiredResId', pm.response.json().id);"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.collectionVariables.set('tmpKey', pm.variables.replaceIn('{{$guid}}'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Idempotency-Key",
+                        "value": "{{tmpKey}}"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"spaceId\": {{pmExpiredSpaceId}},\n  \"startAt\": \"{{s0}}\",\n  \"endAt\": \"{{s1}}\"\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Confirmar",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 422', () => pm.response.to.have.status(422));",
+                          "pm.test('PAYMENT_CARD_EXPIRED', () => pm.expect(pm.response.json().code).to.eql('PAYMENT_CARD_EXPIRED'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations/{{pmExpiredResId}}/confirm",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"paymentMethod\": {\n    \"type\": \"CARD\",\n    \"token\": \"tok_expired\"\n  }\n}"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Cuenta no aceptada",
+              "item": [
+                {
+                  "name": "Espacio",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 201', () => pm.response.to.have.status(201));",
+                          "pm.collectionVariables.set('pmInvalidSpaceId', pm.response.json().id);"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.collectionVariables.set('pmInvalidName', `Metodo Invalid ${Date.now()}`);"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/spaces",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"name\": \"{{pmInvalidName}}\",\n  \"type\": \"DESK\",\n  \"capacity\": 1,\n  \"location\": \"Piso 1\",\n  \"hourlyRate\": 20\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Reserva",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 201', () => pm.response.to.have.status(201));",
+                          "pm.collectionVariables.set('pmInvalidResId', pm.response.json().id);"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.collectionVariables.set('tmpKey', pm.variables.replaceIn('{{$guid}}'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Idempotency-Key",
+                        "value": "{{tmpKey}}"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"spaceId\": {{pmInvalidSpaceId}},\n  \"startAt\": \"{{s0}}\",\n  \"endAt\": \"{{s1}}\"\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Confirmar",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 422', () => pm.response.to.have.status(422));",
+                          "pm.test('PAYMENT_METHOD_INVALID', () => pm.expect(pm.response.json().code).to.eql('PAYMENT_METHOD_INVALID'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations/{{pmInvalidResId}}/confirm",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"paymentMethod\": {\n    \"type\": \"BANK_TRANSFER\",\n    \"accountNumber\": \"SV00BANK0000000000000000001\"\n  }\n}"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Método de pago inválido",
+              "item": [
+                {
+                  "name": "Sin método de pago",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 400', () => pm.response.to.have.status(400));",
+                          "pm.test('VALIDATION_ERROR', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations/{{payOkResId}}/confirm",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{}"
+                    }
+                  }
+                },
+                {
+                  "name": "Número de tarjeta en vez de token",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 400', () => pm.response.to.have.status(400));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations/{{payOkResId}}/confirm",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"paymentMethod\": {\n    \"type\": \"CARD\",\n    \"token\": \"4242424242424242\"\n  }\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Tipo de pago desconocido",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 400', () => pm.response.to.have.status(400));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations/{{payOkResId}}/confirm",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"paymentMethod\": {\n    \"type\": \"CRYPTO\",\n    \"wallet\": \"0xabc\"\n  }\n}"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Permisos",
+              "item": [
+                {
+                  "name": "USER confirma la reserva de otro",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 404', () => pm.response.to.have.status(404));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations/{{payOkResId}}/confirm",
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"paymentMethod\": {\n    \"type\": \"CARD\",\n    \"token\": \"tok_visa_4242\"\n  }\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Sin token",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 401', () => pm.response.to.have.status(401));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations/{{payOkResId}}/confirm",
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"paymentMethod\": {\n    \"type\": \"CARD\",\n    \"token\": \"tok_visa_4242\"\n  }\n}"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Resiliencia del proveedor",
+          "item": [
+            {
+              "name": "Proveedor con error (503)",
+              "item": [
+                {
+                  "name": "Espacio con tarifa 555",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 201', () => pm.response.to.have.status(201));",
+                          "pm.collectionVariables.set('payErrorSpaceId', pm.response.json().id);"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.collectionVariables.set('payErrorName', `Pago Error ${Date.now()}`);"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/spaces",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"name\": \"{{payErrorName}}\",\n  \"type\": \"DESK\",\n  \"capacity\": 1,\n  \"location\": \"Piso 1\",\n  \"hourlyRate\": 555\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Reserva de 1h (importe 555)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 201', () => pm.response.to.have.status(201));",
+                          "pm.collectionVariables.set('payErrorResId', pm.response.json().id);"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.collectionVariables.set('tmpKey', pm.variables.replaceIn('{{$guid}}'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Idempotency-Key",
+                        "value": "{{tmpKey}}"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"spaceId\": {{payErrorSpaceId}},\n  \"startAt\": \"{{s0}}\",\n  \"endAt\": \"{{s1}}\"\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Confirmar",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 202', () => pm.response.to.have.status(202));",
+                          "pm.test('sigue PENDING_PAYMENT', () => pm.expect(pm.response.json().status).to.eql('PENDING_PAYMENT'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations/{{payErrorResId}}/confirm",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"paymentMethod\": {\n    \"type\": \"CARD\",\n    \"token\": \"tok_visa_4242\"\n  }\n}"
+                    }
+                  }
+                }
+              ],
+              "description": "El proveedor falla: se reintenta una vez y la reserva queda pendiente (202)."
+            },
+            {
+              "name": "Proveedor lento (timeout)",
+              "item": [
+                {
+                  "name": "Espacio con tarifa 333",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 201', () => pm.response.to.have.status(201));",
+                          "pm.collectionVariables.set('paySlowSpaceId', pm.response.json().id);"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.collectionVariables.set('paySlowName', `Pago Slow ${Date.now()}`);"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/spaces",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"name\": \"{{paySlowName}}\",\n  \"type\": \"DESK\",\n  \"capacity\": 1,\n  \"location\": \"Piso 1\",\n  \"hourlyRate\": 333\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Reserva de 1h (importe 333)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 201', () => pm.response.to.have.status(201));",
+                          "pm.collectionVariables.set('paySlowResId', pm.response.json().id);"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.collectionVariables.set('tmpKey', pm.variables.replaceIn('{{$guid}}'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Idempotency-Key",
+                        "value": "{{tmpKey}}"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"spaceId\": {{paySlowSpaceId}},\n  \"startAt\": \"{{s0}}\",\n  \"endAt\": \"{{s1}}\"\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "Confirmar",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 202', () => pm.response.to.have.status(202));",
+                          "pm.test('sigue PENDING_PAYMENT', () => pm.expect(pm.response.json().status).to.eql('PENDING_PAYMENT'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/reservations/{{paySlowResId}}/confirm",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"paymentMethod\": {\n    \"type\": \"CARD\",\n    \"token\": \"tok_visa_4242\"\n  }\n}"
+                    }
+                  }
+                }
+              ],
+              "description": "El proveedor tarda más de 2 s: no se reintenta y la reserva queda pendiente (202)."
+            }
+          ],
+          "description": "El proveedor falla o tarda: la reserva no se pierde, queda pendiente y se puede reintentar."
+        },
+        {
+          "name": "Reporte",
+          "item": [
+            {
+              "name": "Validaciones",
+              "item": [
+                {
+                  "name": "Rango invertido",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 400', () => pm.response.to.have.status(400));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/reports/occupancy?from={{reportDay}}&to=2000-01-01"
+                  }
+                },
+                {
+                  "name": "Sin fechas",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 400', () => pm.response.to.have.status(400));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/reports/occupancy"
+                  }
+                },
+                {
+                  "name": "Espacio inexistente",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 404', () => pm.response.to.have.status(404));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/reports/occupancy?from={{reportDay}}&to={{reportDay}}&spaceId=999999"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Permisos",
+              "item": [
+                {
+                  "name": "USER sin REPORT_READ",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 403', () => pm.response.to.have.status(403));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/reports/occupancy?from={{reportDay}}&to={{reportDay}}",
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Sin token",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 401', () => pm.response.to.have.status(401));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/api/v1/reports/occupancy?from={{reportDay}}&to={{reportDay}}",
+                    "auth": {
+                      "type": "noauth"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "description": "Errores, permisos y casos borde de cada parte."
+    },
+    {
+      "name": "05 · Operación",
+      "item": [
+        {
+          "name": "Actuator",
+          "description": "health e info son públicos. Métricas, circuit breaker y reintentos, solo con admin.",
+          "item": [
+            {
+              "name": "Públicos",
+              "item": [
+                {
+                  "name": "Health (sin detalle)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 200', () => pm.response.to.have.status(200));",
+                          "pm.test('UP', () => pm.expect(pm.response.json().status).to.eql('UP'));",
+                          "pm.test('sin componentes', () => pm.expect(pm.response.json()).to.not.have.property('components'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/actuator/health",
+                    "auth": {
+                      "type": "noauth"
+                    }
+                  }
+                },
+                {
+                  "name": "Info",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 200', () => pm.response.to.have.status(200));",
+                          "pm.test('versión', () => pm.expect(pm.response.json().build).to.have.property('version'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/actuator/info",
+                    "auth": {
+                      "type": "noauth"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "name": "ADMIN",
+              "item": [
+                {
+                  "name": "Health con detalle",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 200', () => pm.response.to.have.status(200));",
+                          "pm.test('db UP', () => pm.expect(pm.response.json().components.db.status).to.eql('UP'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/actuator/health"
+                  }
+                },
+                {
+                  "name": "Métricas disponibles",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 200', () => pm.response.to.have.status(200));",
+                          "pm.test('http.server.requests', () => pm.expect(pm.response.json().names).to.include('http.server.requests'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/actuator/metrics"
+                  }
+                },
+                {
+                  "name": "Métrica: peticiones HTTP",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 200', () => pm.response.to.have.status(200));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/actuator/metrics/http.server.requests"
+                  }
+                },
+                {
+                  "name": "Métrica: memoria JVM",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 200', () => pm.response.to.have.status(200));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/actuator/metrics/jvm.memory.used"
+                  }
+                },
+                {
+                  "name": "Circuit breakers",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 200', () => pm.response.to.have.status(200));",
+                          "pm.test('circuito payment', () => pm.expect(pm.response.json().circuitBreakers).to.have.property('payment'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/actuator/circuitbreakers"
+                  }
+                },
+                {
+                  "name": "Métrica de pagos",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 200', () => pm.response.to.have.status(200));",
+                          "pm.test('tag outcome', () => pm.expect(pm.response.json().availableTags.map(t => t.tag)).to.include('outcome'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/actuator/metrics/payments.attempts"
+                  }
+                },
+                {
+                  "name": "Reintentos",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 200', () => pm.response.to.have.status(200));",
+                          "pm.test('retry payment', () => pm.expect(pm.response.json().retries).to.include('payment'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/actuator/retries"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Seguridad",
+              "item": [
+                {
+                  "name": "Métricas como USER",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 403', () => pm.response.to.have.status(403));",
+                          "pm.test('code FORBIDDEN', () => pm.expect(pm.response.json().code).to.eql('FORBIDDEN'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/actuator/metrics",
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{userToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Métricas sin token",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('status 401', () => pm.response.to.have.status(401));",
+                          "pm.test('code UNAUTHORIZED', () => pm.expect(pm.response.json().code).to.eql('UNAUTHORIZED'));"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": "{{baseUrl}}/actuator/metrics",
+                    "auth": {
+                      "type": "noauth"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Documentación",
+          "item": [
+            {
+              "name": "Swagger UI",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/swagger-ui/index.html",
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "OpenAPI JSON",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('servidor /coworking-service/api/v1', () => pm.expect(pm.response.json().servers[0].url).to.eql('/coworking-service/api/v1'));",
+                      "pm.test('rutas por dominio', () => pm.expect(pm.response.json().paths).to.have.property('/spaces'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/v3/api-docs",
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            }
+          ],
+          "description": "OpenAPI y Swagger UI."
+        }
+      ],
+      "description": "Salud, métricas y documentación de la API."
+    }
+  ]
+}

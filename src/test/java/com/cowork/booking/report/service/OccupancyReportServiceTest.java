@@ -3,6 +3,7 @@ package com.cowork.booking.report.service;
 import com.cowork.booking.common.ResourceNotFoundException;
 import com.cowork.booking.report.dto.OccupancyReportRequest;
 import com.cowork.booking.report.dto.SpaceOccupancy;
+import com.cowork.booking.report.mapper.OccupancyMapper;
 import com.cowork.booking.report.repository.OccupancyRepository;
 import com.cowork.booking.report.repository.OccupancyRow;
 import com.cowork.booking.space.repository.SpaceRepository;
@@ -40,7 +41,7 @@ class OccupancyReportServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new OccupancyReportService(occupancyRepository, spaceRepository);
+        service = new OccupancyReportService(occupancyRepository, spaceRepository, new OccupancyMapper());
     }
 
     @Test
