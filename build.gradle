@@ -51,9 +51,7 @@ dependencies {
 }
 
 springBoot {
-    buildInfo {
-        excludes = ['time']
-    }
+    buildInfo()
 }
 
 dependencyManagement {
