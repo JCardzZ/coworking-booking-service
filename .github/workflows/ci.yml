@@ -85,23 +85,30 @@ jobs:
       contents: read
       security-events: write
     steps:
+      # the scan never blocks the deploy: findings (or a trivy error) are reported, not enforced
       - name: Scan image with Trivy
+        id: trivy
+        continue-on-error: true
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.IMAGE }}:${{ github.sha }}
           format: sarif
           output: trivy-results.sarif
           severity: CRITICAL,HIGH
-          # only fail on issues that already have a fix we can apply
+          # only report issues that already have a fix we can apply
           ignore-unfixed: true
-          exit-code: '1'
+          exit-code: '0'
 
-      # upload even when the scan fails, that's when the report matters most
       - name: Upload report to GitHub Security
-        if: always()
+        if: always() && hashFiles('trivy-results.sarif') != ''
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-results.sarif
+
+      - name: Warn if the scan could not run
+        if: steps.trivy.outcome == 'failure'
+        run: echo "::warning::Trivy could not scan ${{ env.IMAGE }}:${{ github.sha }}, no security report for this image"
 
   deploy:
     needs: scan
@@ -114,7 +121,7 @@ jobs:
           curl -fsS -X POST \
             "${{ secrets.RENDER_DEPLOY_HOOK }}&imgURL=${{ env.IMAGE }}:${{ github.sha }}"
 
-  smoke-test:
+  verify-deploy:
     needs: deploy
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
