@@ -64,11 +64,15 @@ La app corre con el perfil `prod` y construye su imagen desde el `Dockerfile` de
 
 Administrador inicial: `manuel.admin@coworking.com` / `Admin123!`. El token se obtiene con `POST /auth/login` y se envía como `Authorization: Bearer <token>`.
 
-Para confirmar una reserva se manda el método de pago:
+Para confirmar una reserva (`POST /reservations/{id}/confirm`) se manda el método de pago, con tarjeta:
 
 ```json
-POST /reservations/{id}/confirm
 { "paymentMethod": { "type": "CARD", "token": "tok_visa_4242" } }
+```
+
+o con transferencia:
+
+```json
 { "paymentMethod": { "type": "BANK_TRANSFER", "accountNumber": "SV62CENR00000000000000700025" } }
 ```
 
@@ -130,6 +134,11 @@ Los tests levantan su propio PostgreSQL con Testcontainers, así que hace falta 
   - `PaymentConfirmationIT`: tarjeta y transferencia aprobadas, cada motivo de rechazo, pagar con otra tarjeta después de un rechazo, validación del método de pago, proveedor lento, el reintento con la misma `Idempotency-Key` (revisando lo que llegó a WireMock), el circuito abriéndose y la notificación asíncrona.
   - `ReservationConcurrencyIT`: 20 reservas al mismo tiempo para el mismo horario. Una sola gana (201), las otras 19 reciben 409 y en la base queda una fila. También revisa que dos reservas seguidas (9-10 y 10-11) enviadas a la vez pasen las dos.
   - `OccupancyReportIT`: el cálculo del reporte, que se cachea y que se actualiza al confirmar o cancelar.
+  - `ReservationQueryIT`: cada usuario ve solo sus reservas, el admin ve todas, y los filtros del listado.
+  - `AdminApiIT`: roles, usuarios, bloqueo de cuentas y permisos que cambian con el mismo token.
+  - `SpaceApiIT` y `ApiErrorsIT`: el CRUD de espacios y que todos los errores salgan con el mismo formato.
+
+La cobertura se mide con JaCoCo (reporte en `build/reports/jacoco/test/html/index.html`) y el build falla si baja del 90% de líneas.
 
 ## Arquitectura
 

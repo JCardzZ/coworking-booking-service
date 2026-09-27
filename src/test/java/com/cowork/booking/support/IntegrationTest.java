@@ -22,6 +22,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -119,6 +120,13 @@ public abstract class IntegrationTest {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         return objectMapper.readTree(body).get("accessToken").asText();
+    }
+
+    protected ResultActions perform(MockHttpServletRequestBuilder request, String token) throws Exception {
+        if (token != null) {
+            request.header(HttpHeaders.AUTHORIZATION, bearer(token));
+        }
+        return mockMvc.perform(request);
     }
 
     protected Long idOf(ResultActions result) throws Exception {

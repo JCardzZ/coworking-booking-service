@@ -7,6 +7,7 @@ import org.springframework.core.task.TaskDecorator;
 import org.springframework.scheduling.annotation.EnableAsync;
 
 import java.util.Map;
+import java.util.Objects;
 
 /** Pool size and shutdown come from spring.task.execution in application.yml. */
 @Configuration
@@ -17,11 +18,9 @@ public class AsyncConfig {
     @Bean
     TaskDecorator mdcTaskDecorator() {
         return task -> {
-            Map<String, String> context = MDC.getCopyOfContextMap();
+            Map<String, String> context = Objects.requireNonNullElse(MDC.getCopyOfContextMap(), Map.of());
             return () -> {
-                if (context != null) {
-                    MDC.setContextMap(context);
-                }
+                MDC.setContextMap(context);
                 try {
                     task.run();
                 } finally {
