@@ -5,6 +5,9 @@ import com.cowork.booking.common.AppConstants.Permissions;
 import com.cowork.booking.common.BusinessRuleException;
 import com.cowork.booking.common.ResourceNotFoundException;
 import com.cowork.booking.common.UnprocessableOperationException;
+import com.cowork.booking.reservation.client.PaymentClient;
+import com.cowork.booking.reservation.client.PaymentRequest;
+import com.cowork.booking.reservation.client.PaymentResult;
 import com.cowork.booking.reservation.dto.CreateReservationRequest;
 import com.cowork.booking.reservation.dto.ReservationResponse;
 import com.cowork.booking.reservation.mapper.ReservationMapper;
@@ -28,6 +31,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
@@ -42,6 +47,7 @@ import static com.cowork.booking.user.UserFixtures.user;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -60,6 +66,8 @@ class ReservationServiceTest {
     private SpaceRepository spaceRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private PaymentClient paymentClient;
 
     private ReservationService service;
     private Space space;
@@ -68,7 +76,7 @@ class ReservationServiceTest {
     @BeforeEach
     void setUp() {
         service = new ReservationService(reservationRepository, spaceRepository, userRepository, new ReservationMapper(),
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                paymentClient, new TransactionTemplate(mock(PlatformTransactionManager.class)), Clock.fixed(NOW, ZoneOffset.UTC));
         space = new Space("Sala Andes", SpaceType.MEETING_ROOM, 8, "Piso 2", new BigDecimal("25.00"));
         ReflectionTestUtils.setField(space, "id", 1L);
         ana = user(2L, "ana@coworking.com", role("USER"));
@@ -197,6 +205,56 @@ class ReservationServiceTest {
         when(reservationRepository.saveAndFlush(reservation)).thenReturn(reservation);
 
         assertThat(service.cancel(10L).status()).isEqualTo(ReservationStatus.CANCELLED);
+    }
+
+    @Test
+    void approvedPaymentConfirmsTheReservation() {
+        Reservation reservation = reservation(ana);
+        when(reservationRepository.findWithDetailsById(10L)).thenReturn(Optional.of(reservation));
+        when(paymentClient.validate(any(PaymentRequest.class))).thenReturn(PaymentResult.APPROVED);
+        when(reservationRepository.saveAndFlush(reservation)).thenReturn(reservation);
+
+        ReservationService.ConfirmResult result = service.confirm(10L);
+
+        assertThat(result.confirmed()).isTrue();
+        assertThat(result.reservation().status()).isEqualTo(ReservationStatus.CONFIRMED);
+    }
+
+    @Test
+    void unavailablePaymentKeepsReservationPending() {
+        Reservation reservation = reservation(ana);
+        when(reservationRepository.findWithDetailsById(10L)).thenReturn(Optional.of(reservation));
+        when(paymentClient.validate(any(PaymentRequest.class))).thenReturn(PaymentResult.UNAVAILABLE);
+
+        ReservationService.ConfirmResult result = service.confirm(10L);
+
+        assertThat(result.confirmed()).isFalse();
+        assertThat(result.reservation().status()).isEqualTo(ReservationStatus.PENDING_PAYMENT);
+        verify(reservationRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void declinedPaymentIsRejectedAndStaysPending() {
+        Reservation reservation = reservation(ana);
+        when(reservationRepository.findWithDetailsById(10L)).thenReturn(Optional.of(reservation));
+        when(paymentClient.validate(any(PaymentRequest.class))).thenReturn(PaymentResult.DECLINED);
+
+        assertThatThrownBy(() -> service.confirm(10L))
+                .isInstanceOf(UnprocessableOperationException.class)
+                .extracting("code").isEqualTo(ErrorCodes.PAYMENT_DECLINED);
+        assertThat(reservation.getStatus()).isEqualTo(ReservationStatus.PENDING_PAYMENT);
+    }
+
+    @Test
+    void cancelledReservationIsNotSentToPayment() {
+        Reservation reservation = reservation(ana);
+        reservation.cancel(NOW);
+        when(reservationRepository.findWithDetailsById(10L)).thenReturn(Optional.of(reservation));
+
+        assertThatThrownBy(() -> service.confirm(10L))
+                .isInstanceOf(BusinessRuleException.class)
+                .extracting("code").isEqualTo(ErrorCodes.INVALID_RESERVATION_STATE);
+        verify(paymentClient, never()).validate(any());
     }
 
     private Reservation reservation(User owner) {
