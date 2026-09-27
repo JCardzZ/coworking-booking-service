@@ -81,7 +81,7 @@ Hook de git (una sola vez): `git config core.hooksPath .githooks`. Bloquea el `g
 Los tests levantan su propio PostgreSQL efímero con Testcontainers (requiere Docker).
 
 - **Unitarios** (Mockito): reglas de negocio de espacios, usuarios, roles y reservas.
-- **Integración** (`*IT`, `@SpringBootTest` + Testcontainers): `PaymentConfirmationIT` levanta PostgreSQL y WireMock en contenedores (con los mismos mappings de `wiremock/`) y recorre la confirmación por HTTP con JWT real: pago aprobado, rechazado, proveedor lento, el circuito que se abre tras 5 fallos y la notificación asíncrona tras confirmar. `OccupancyReportIT` comprueba el cálculo del reporte, que se cachea y que se refresca al confirmar o cancelar.
+- **Integración** (`*IT`, `@SpringBootTest` + Testcontainers): `PaymentConfirmationIT` levanta PostgreSQL y WireMock en contenedores (con los mismos mappings de `wiremock/`) y recorre la confirmación por HTTP con JWT real: pago aprobado, rechazado, proveedor lento, el circuito que se abre tras 5 fallos y la notificación asíncrona tras confirmar. `OccupancyReportIT` comprueba el cálculo del reporte, que se cachea y que se refresca al confirmar o cancelar. `ReservationConcurrencyIT` lanza 20 reservas simultáneas del mismo horario: solo una responde 201, las otras 19 reciben 409 y en la base queda una sola fila; además, dos reservas contiguas lanzadas a la vez se aceptan las dos.
 
 ## Arquitectura
 
