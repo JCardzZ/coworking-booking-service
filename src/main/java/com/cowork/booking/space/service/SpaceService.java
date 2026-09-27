@@ -1,6 +1,7 @@
 package com.cowork.booking.space.service;
 
 import com.cowork.booking.common.AppConstants.Audit;
+import com.cowork.booking.common.AppConstants.Caches;
 import com.cowork.booking.common.AppConstants.ErrorCodes;
 import com.cowork.booking.common.AppConstants.Messages;
 import com.cowork.booking.common.Audited;
@@ -14,6 +15,7 @@ import com.cowork.booking.space.model.Space;
 import com.cowork.booking.space.repository.SpaceRepository;
 import com.cowork.booking.space.repository.SpaceSpecifications;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -48,6 +50,7 @@ public class SpaceService {
 
     @Transactional
     @Audited(Audit.SPACE_UPDATE)
+    @CacheEvict(cacheNames = Caches.OCCUPANCY_REPORT, allEntries = true)
     public SpaceResponse update(Long id, SpaceRequest request) {
         Space space = getActiveSpace(id);
         if (spaceRepository.existsByNameIgnoreCaseAndActiveTrueAndIdNot(request.name().trim(), id)) {
@@ -60,6 +63,7 @@ public class SpaceService {
 
     @Transactional
     @Audited(Audit.SPACE_DELETE)
+    @CacheEvict(cacheNames = Caches.OCCUPANCY_REPORT, allEntries = true)
     public void delete(Long id) {
         getActiveSpace(id).deactivate();
     }
