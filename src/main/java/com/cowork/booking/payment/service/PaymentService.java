@@ -15,18 +15,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class PaymentService {
 
-    private static final int FINGERPRINT_BYTES = 8;
+    private static final int FINGERPRINT_LENGTH = 16;
 
     private final PaymentClient paymentClient;
     private final PaymentAttemptRepository attemptRepository;
@@ -57,15 +55,10 @@ public class PaymentService {
                 .toList();
     }
 
-    // same reservation and same card give the same key; another card is a new attempt
+    // same card on the same reservation gives the same key; it's a fingerprint, not a security hash
     static String idempotencyKey(Long reservationId, PaymentMethod method) {
-        try {
-            byte[] hash = MessageDigest.getInstance("SHA-256")
-                    .digest((method.type() + ":" + method.instrument()).getBytes(StandardCharsets.UTF_8));
-            String fingerprint = HexFormat.of().formatHex(hash, 0, FINGERPRINT_BYTES);
-            return Payments.IDEMPOTENCY_KEY_PREFIX + reservationId + "-" + fingerprint;
-        } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException(ex);
-        }
+        String fingerprint = UUID.nameUUIDFromBytes((method.type() + ":" + method.instrument()).getBytes(StandardCharsets.UTF_8))
+                .toString().replace("-", "").substring(0, FINGERPRINT_LENGTH);
+        return Payments.IDEMPOTENCY_KEY_PREFIX + reservationId + "-" + fingerprint;
     }
 }

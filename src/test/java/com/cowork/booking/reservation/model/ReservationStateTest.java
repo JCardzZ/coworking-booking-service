@@ -5,6 +5,7 @@ import com.cowork.booking.common.BusinessRuleException;
 import com.cowork.booking.space.model.Space;
 import com.cowork.booking.space.model.SpaceType;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -63,6 +64,26 @@ class ReservationStateTest {
                 .isInstanceOf(BusinessRuleException.class)
                 .extracting("code").isEqualTo(ErrorCodes.RESERVATION_ALREADY_STARTED);
         assertThat(reservation.getStatus()).isEqualTo(ReservationStatus.PENDING_PAYMENT);
+    }
+
+    @Test
+    void eachStateKnowsItsStatus() {
+        for (ReservationStatus status : ReservationStatus.values()) {
+            assertThat(status.state().status()).isEqualTo(status);
+        }
+    }
+
+    @Test
+    void sameRequestMeansSameSpaceAndSameTimes() {
+        Reservation reservation = reservation();
+        ReflectionTestUtils.setField(reservation.getSpace(), "id", 1L);
+        Instant start = reservation.getStartAt();
+        Instant end = reservation.getEndAt();
+
+        assertThat(reservation.isSameRequest(1L, start, end)).isTrue();
+        assertThat(reservation.isSameRequest(2L, start, end)).isFalse();
+        assertThat(reservation.isSameRequest(1L, start.plusSeconds(60), end)).isFalse();
+        assertThat(reservation.isSameRequest(1L, start, end.plusSeconds(60))).isFalse();
     }
 
     private static Reservation reservation() {

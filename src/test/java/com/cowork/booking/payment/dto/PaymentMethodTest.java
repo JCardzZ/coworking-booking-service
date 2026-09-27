@@ -13,6 +13,11 @@ class PaymentMethodTest {
     }
 
     @Test
+    void veryShortValuesAreFullyHidden() {
+        assertThat(new CardPayment("tok").masked()).isEqualTo("****");
+    }
+
+    @Test
     void toStringNeverPrintsTheFullValue() {
         assertThat(new CardPayment("tok_visa_4242").toString()).doesNotContain("tok_visa").contains("****4242");
         assertThat(new BankTransferPayment("SV62CENR00000000000000700025").toString()).doesNotContain("SV62");

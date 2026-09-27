@@ -39,6 +39,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 @Configuration
 public class OpenApiConfig {
@@ -98,7 +99,7 @@ public class OpenApiConfig {
             String contextPath = Objects.requireNonNullElse(serverProperties.getServlet().getContextPath(), "");
             Paths domainPaths = new Paths();
             openApi.getPaths().forEach((path, item) ->
-                    domainPaths.addPathItem(path.startsWith(Api.BASE_PATH) ? path.substring(Api.BASE_PATH.length()) : path, item));
+                    domainPaths.addPathItem(path.replaceFirst("^" + Pattern.quote(Api.BASE_PATH), ""), item));
             openApi.setPaths(domainPaths);
             openApi.setServers(List.of(new Server()
                     .url(contextPath + Api.BASE_PATH)
@@ -113,8 +114,9 @@ public class OpenApiConfig {
                 .required(false)
                 .schema(new StringSchema().example(Examples.TRACE_ID)));
         ApiResponses responses = operation.getResponses();
-        boolean secured = operation.getSecurity() == null || !operation.getSecurity().isEmpty();
-        if (secured) {
+        // an explicit empty security list marks a public endpoint (login, register)
+        boolean isPublic = List.of().equals(operation.getSecurity());
+        if (!isPublic) {
             responses.putIfAbsent(code(HttpStatus.UNAUTHORIZED), errorResponse(HttpStatus.UNAUTHORIZED, Common.UNAUTHORIZED_TITLE,
                     Common.UNAUTHORIZED_DETAIL, ErrorCodes.UNAUTHORIZED));
             responses.putIfAbsent(code(HttpStatus.FORBIDDEN), errorResponse(HttpStatus.FORBIDDEN, Common.FORBIDDEN_TITLE,

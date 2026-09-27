@@ -138,6 +138,19 @@ class ReservationServiceTest {
     }
 
     @Test
+    void otherDatabaseErrorsAreNotDisguisedAsOverlap() {
+        when(reservationRepository.findByUserIdAndIdempotencyKey(2L, KEY)).thenReturn(Optional.empty());
+        when(spaceRepository.findByIdAndActiveTrue(1L)).thenReturn(Optional.of(space));
+        when(reservationRepository.existsOverlapping(1L, START, END)).thenReturn(false);
+        when(userRepository.findById(2L)).thenReturn(Optional.of(ana));
+        DataIntegrityViolationException other = new DataIntegrityViolationException("insert",
+                new SQLException("null value in column \"space_id\" violates not-null constraint"));
+        when(reservationRepository.saveAndFlush(any(Reservation.class))).thenThrow(other);
+
+        assertThatThrownBy(() -> service.create(request(START, END), KEY)).isSameAs(other);
+    }
+
+    @Test
     void createRejectsPastStart() {
         when(reservationRepository.findByUserIdAndIdempotencyKey(2L, KEY)).thenReturn(Optional.empty());
 
@@ -231,6 +244,15 @@ class ReservationServiceTest {
         assertThat(result.reservation().paymentReference()).isEqualTo("pay_abc123");
         verify(eventPublisher).publishEvent(new ReservationConfirmedEvent(10L, ana.getEmail(), space.getName(),
                 START, END, new BigDecimal("37.50")));
+    }
+
+    @Test
+    void reservationGoneWhileWaitingForThePaymentIsNotFound() {
+        Reservation reservation = reservation(ana);
+        when(reservationRepository.findWithDetailsById(10L)).thenReturn(Optional.of(reservation), Optional.empty());
+        when(paymentService.charge(reservation, CARD)).thenReturn(PaymentResult.approved("pay_abc123"));
+
+        assertThatThrownBy(() -> service.confirm(10L, CARD)).isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
