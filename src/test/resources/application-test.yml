@@ -1,0 +1,10 @@
+payment:
+  service:
+    url: http://localhost:8081
+
+security:
+  jwt:
+    secret: test-only-secret-0123456789abcdef0123
+  admin:
+    email: admin@test.com
+    password: Admin123!

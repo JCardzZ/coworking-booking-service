@@ -44,6 +44,8 @@ docker compose up
 
 La app corre con el perfil `prod` y construye su imagen desde el `Dockerfile` del repositorio.
 
+Administrador inicial: `manuel.admin@coworking.com` / `Admin123!`. El token se obtiene con `POST /auth/login` y se envía como `Authorization: Bearer <token>`.
+
 ### Desarrollo local
 
 ```bash
@@ -104,6 +106,7 @@ src/main/resources
 
 - **Swagger UI accesible también con el perfil `prod`**: se deja expuesto para que el evaluador pueda explorar y probar la API con `docker compose up`. En un despliegue real se restringiría a nivel de infraestructura (red interna o API Gateway), no desactivándolo desde el código de la aplicación.
 - **Paquetes por dominio en vez de por capa**: se gana cohesión (cada dominio agrupa todo lo que necesita), dominios aislados entre sí y más fáciles de extraer a otro servicio si hiciera falta. A cambio, las subcarpetas `controller/service/repository/dto/mapper` se repiten en cada dominio.
+- **Credenciales de evaluación**: el admin inicial se crea al arrancar desde `ADMIN_EMAIL`/`ADMIN_PASSWORD`, y `JWT_SECRET` firma los tokens. Los valores del README, `.env.example` y `docker-compose.yml` son solo para evaluación; en un despliegue real se sustituyen por secretos gestionados (vault o secretos del orquestador).
 
 _Resto pendiente de completar._
 

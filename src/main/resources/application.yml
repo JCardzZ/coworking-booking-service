@@ -18,6 +18,12 @@ spring:
       pageable:
         max-page-size: 100
 
+security:
+  jwt:
+    expiration: 1h
+  admin:
+    full-name: Administrador
+
 logging:
   pattern:
     correlation: "[%X{correlationId:-}] "

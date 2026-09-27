@@ -1,7 +1,9 @@
 package com.cowork.booking.space.service;
 
+import com.cowork.booking.common.AppConstants.Audit;
 import com.cowork.booking.common.AppConstants.ErrorCodes;
 import com.cowork.booking.common.AppConstants.Messages;
+import com.cowork.booking.common.Audited;
 import com.cowork.booking.common.BusinessRuleException;
 import com.cowork.booking.common.ResourceNotFoundException;
 import com.cowork.booking.space.dto.SpaceFilter;
@@ -35,6 +37,7 @@ public class SpaceService {
     }
 
     @Transactional
+    @Audited(Audit.SPACE_CREATE)
     public SpaceResponse create(SpaceRequest request) {
         if (spaceRepository.existsByNameIgnoreCaseAndActiveTrue(request.name().trim())) {
             throw nameTaken(request.name());
@@ -44,6 +47,7 @@ public class SpaceService {
     }
 
     @Transactional
+    @Audited(Audit.SPACE_UPDATE)
     public SpaceResponse update(Long id, SpaceRequest request) {
         Space space = getActiveSpace(id);
         if (spaceRepository.existsByNameIgnoreCaseAndActiveTrueAndIdNot(request.name().trim(), id)) {
@@ -55,6 +59,7 @@ public class SpaceService {
     }
 
     @Transactional
+    @Audited(Audit.SPACE_DELETE)
     public void delete(Long id) {
         getActiveSpace(id).deactivate();
     }
