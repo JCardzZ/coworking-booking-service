@@ -32,6 +32,12 @@ public final class AppConstants {
         public static final String STATUS = "/status";
         public static final String PERMISSIONS = "/permissions";
 
+        public static final String RESERVATIONS = "/reservations";
+        public static final String RESERVATION_ID = "/{reservationId}";
+        public static final String CANCEL = "/cancel";
+
+        public static final String IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
+
         private Api() {
         }
     }
@@ -40,6 +46,7 @@ public final class AppConstants {
         public static final int DEFAULT_SIZE = 20;
         public static final String SPACE_DEFAULT_SORT = "name";
         public static final String USER_DEFAULT_SORT = "email";
+        public static final String RESERVATION_DEFAULT_SORT = "startAt";
 
         private Paging() {
         }
@@ -82,11 +89,20 @@ public final class AppConstants {
         public static final String USER_MANAGE = "USER_MANAGE";
         public static final String RBAC_MANAGE = "RBAC_MANAGE";
         public static final String METRICS_READ = "METRICS_READ";
+        public static final String RESERVATION_CREATE = "RESERVATION_CREATE";
+        public static final String RESERVATION_READ_OWN = "RESERVATION_READ_OWN";
+        public static final String RESERVATION_READ_ALL = "RESERVATION_READ_ALL";
+        public static final String RESERVATION_MANAGE_ALL = "RESERVATION_MANAGE_ALL";
 
         public static final String HAS_SPACE_READ = "hasAuthority('" + SPACE_READ + "')";
         public static final String HAS_SPACE_WRITE = "hasAuthority('" + SPACE_WRITE + "')";
         public static final String HAS_USER_MANAGE = "hasAuthority('" + USER_MANAGE + "')";
         public static final String HAS_RBAC_MANAGE = "hasAuthority('" + RBAC_MANAGE + "')";
+        public static final String HAS_RESERVATION_CREATE = "hasAuthority('" + RESERVATION_CREATE + "')";
+        public static final String CAN_READ_RESERVATIONS =
+                "hasAnyAuthority('" + RESERVATION_READ_OWN + "', '" + RESERVATION_READ_ALL + "')";
+        public static final String CAN_CANCEL_RESERVATIONS =
+                "hasAnyAuthority('" + RESERVATION_CREATE + "', '" + RESERVATION_MANAGE_ALL + "')";
 
         /** ADMIN always keeps these so nobody gets locked out. */
         public static final Set<String> ADMIN_LOCKED = Set.of(USER_MANAGE, RBAC_MANAGE);
@@ -111,6 +127,8 @@ public final class AppConstants {
         public static final String SPACE_CREATE = "SPACE_CREATE";
         public static final String SPACE_UPDATE = "SPACE_UPDATE";
         public static final String SPACE_DELETE = "SPACE_DELETE";
+        public static final String RESERVATION_CREATE = "RESERVATION_CREATE";
+        public static final String RESERVATION_CANCEL = "RESERVATION_CANCEL";
         public static final String USER_REGISTER = "USER_REGISTER";
         public static final String USER_CREATE = "USER_CREATE";
         public static final String USER_STATUS_UPDATE = "USER_STATUS_UPDATE";
@@ -134,6 +152,7 @@ public final class AppConstants {
         public static final String METHOD_NOT_ALLOWED = "METHOD_NOT_ALLOWED";
         public static final String UNSUPPORTED_MEDIA_TYPE = "UNSUPPORTED_MEDIA_TYPE";
         public static final String REQUEST_ERROR = "REQUEST_ERROR";
+        public static final String MISSING_HEADER = "MISSING_HEADER";
         public static final String DATA_INTEGRITY_VIOLATION = "DATA_INTEGRITY_VIOLATION";
         public static final String CONCURRENT_MODIFICATION = "CONCURRENT_MODIFICATION";
         public static final String INTERNAL_ERROR = "INTERNAL_ERROR";
@@ -147,6 +166,12 @@ public final class AppConstants {
         public static final String UNKNOWN_PERMISSION = "UNKNOWN_PERMISSION";
         public static final String ADMIN_ROLE_LOCKOUT = "ADMIN_ROLE_LOCKOUT";
         public static final String SELF_STATUS_CHANGE = "SELF_STATUS_CHANGE";
+        public static final String RESERVATION_OVERLAP = "RESERVATION_OVERLAP";
+        public static final String RESERVATION_IN_PAST = "RESERVATION_IN_PAST";
+        public static final String RESERVATION_TOO_LONG = "RESERVATION_TOO_LONG";
+        public static final String RESERVATION_ALREADY_STARTED = "RESERVATION_ALREADY_STARTED";
+        public static final String INVALID_RESERVATION_STATE = "INVALID_RESERVATION_STATE";
+        public static final String IDEMPOTENCY_KEY_REUSED = "IDEMPOTENCY_KEY_REUSED";
 
         private ErrorCodes() {
         }
@@ -208,6 +233,8 @@ public final class AppConstants {
             public static final String UNSUPPORTED_MEDIA_TYPE_TITLE = "Tipo de contenido no soportado";
             public static final String UNSUPPORTED_MEDIA_TYPE_DETAIL = "El Content-Type de la solicitud no está soportado";
             public static final String REQUEST_ERROR_TITLE = "Solicitud no procesable";
+            public static final String MISSING_HEADER_TITLE = "Cabecera obligatoria";
+            public static final String MISSING_HEADER_DETAIL = "Falta la cabecera '%s'";
             public static final String REQUEST_ERROR_DETAIL = "No se pudo procesar la solicitud";
             public static final String BUSINESS_RULE_TITLE = "Regla de negocio incumplida";
             public static final String UNPROCESSABLE_TITLE = "Operación no permitida";
@@ -236,6 +263,8 @@ public final class AppConstants {
             public static final String EMAIL_FORMAT = "debe ser un email válido";
             public static final String LENGTH_RANGE = "debe tener entre {min} y {max} caracteres";
             public static final String NOT_EMPTY = "debe tener al menos un elemento";
+            public static final String END_AFTER_START = "endAt debe ser posterior a startAt";
+            public static final String IDEMPOTENCY_KEY_FORMAT = "debe tener entre 8 y 64 caracteres: letras, números y guiones";
             public static final String ROLE_NAME_FORMAT = "debe empezar por letra y contener solo letras, números y guiones bajos";
 
             private Validation() {
@@ -270,6 +299,23 @@ public final class AppConstants {
             public static final String ADMIN_LOCKOUT = "El rol ADMIN debe conservar los permisos %s";
 
             private Role() {
+            }
+        }
+
+        public static final class Reservation {
+            public static final String RESOURCE_TYPE = "Reservation";
+            public static final String NOT_FOUND = "Reserva con id %s no encontrada";
+            public static final String OVERLAP = "El espacio ya está reservado en ese horario";
+            public static final String IN_PAST = "La reserva debe empezar en el futuro";
+            public static final String TOO_LONG = "La reserva no puede durar más de %d horas";
+            public static final String ALREADY_STARTED = "No se puede cancelar una reserva que ya comenzó";
+            public static final String INVALID_TRANSITION = "No se puede %s una reserva en estado %s";
+            public static final String IDEMPOTENCY_KEY_REUSED = "La Idempotency-Key ya se usó con otros datos de reserva";
+            public static final String ACTION_CONFIRM = "confirmar";
+            public static final String ACTION_CANCEL = "cancelar";
+            public static final String PERIOD_FIELD = "endAt";
+
+            private Reservation() {
             }
         }
 
@@ -311,6 +357,9 @@ public final class AppConstants {
         public static final int DESCRIPTION_MAX = 200;
         /** Role names: letter first, then letters, digits or underscores; stored uppercase. */
         public static final String ROLE_NAME_PATTERN = "\\s*[A-Za-z][A-Za-z0-9_]{1,49}\\s*";
+        public static final int RESERVATION_MAX_HOURS = 12;
+        public static final int IDEMPOTENCY_KEY_MAX = 64;
+        public static final String IDEMPOTENCY_KEY_PATTERN = "[A-Za-z0-9-]{8,64}";
 
         private Limits() {
         }

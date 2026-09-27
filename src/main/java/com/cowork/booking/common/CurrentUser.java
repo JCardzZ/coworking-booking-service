@@ -33,6 +33,12 @@ public final class CurrentUser {
                 .orElse(Audit.SYSTEM_USER);
     }
 
+    public static boolean hasAuthority(String authority) {
+        return jwt().map(token -> token.getAuthorities().stream()
+                        .anyMatch(granted -> granted.getAuthority().equals(authority)))
+                .orElse(false);
+    }
+
     private static Optional<JwtAuthenticationToken> jwt() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return authentication instanceof JwtAuthenticationToken token ? Optional.of(token) : Optional.empty();
