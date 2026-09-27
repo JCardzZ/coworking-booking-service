@@ -5,7 +5,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/** Writes an audit log line (action, user, roles, outcome) for the annotated service method. */
+/** Logs an audit line (action, user, role, outcome) for the annotated method. */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Audited {

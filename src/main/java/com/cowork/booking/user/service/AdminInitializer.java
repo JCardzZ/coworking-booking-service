@@ -1,9 +1,11 @@
 package com.cowork.booking.user.service;
 
 import com.cowork.booking.common.AppConstants.Messages;
+import com.cowork.booking.common.AppConstants.Security;
 import com.cowork.booking.config.SecurityProperties;
 import com.cowork.booking.user.model.Role;
 import com.cowork.booking.user.model.User;
+import com.cowork.booking.user.repository.RoleRepository;
 import com.cowork.booking.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AdminInitializer implements ApplicationRunner {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final SecurityProperties securityProperties;
 
@@ -31,7 +34,8 @@ public class AdminInitializer implements ApplicationRunner {
         if (userRepository.existsByEmailIgnoreCase(email)) {
             return;
         }
-        userRepository.save(new User(email, passwordEncoder.encode(admin.password()), admin.fullName(), Role.ADMIN));
+        Role adminRole = roleRepository.findByNameIgnoreCase(Security.ADMIN_ROLE).orElseThrow();
+        userRepository.save(new User(email, passwordEncoder.encode(admin.password()), admin.fullName(), adminRole));
         log.info(Messages.Auth.LOG_ADMIN_CREATED, email);
     }
 }

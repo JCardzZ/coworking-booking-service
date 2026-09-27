@@ -1,6 +1,7 @@
 package com.cowork.booking.common;
 
 import java.util.List;
+import java.util.Set;
 import java.util.Locale;
 
 /** Runtime constants grouped by flow. */
@@ -22,6 +23,14 @@ public final class AppConstants {
 
         public static final String USERS = "/users";
         public static final String ME = "/me";
+
+        public static final String ADMIN_USERS = "/admin/users";
+        public static final String ADMIN_ROLES = "/admin/roles";
+        public static final String ADMIN_PERMISSIONS = "/admin/permissions";
+        public static final String USER_ID = "/{userId}";
+        public static final String ROLE_ID = "/{roleId}";
+        public static final String STATUS = "/status";
+        public static final String PERMISSIONS = "/permissions";
 
         private Api() {
         }
@@ -49,11 +58,11 @@ public final class AppConstants {
         public static final String BEARER_SCHEME = "bearerAuth";
         public static final String TOKEN_TYPE = "Bearer";
         public static final String ISSUER = "coworking-service";
-        public static final String ROLES_CLAIM = "roles";
+        public static final String ROLE_CLAIM = "role";
         public static final String EMAIL_CLAIM = "email";
         public static final String ROLE_PREFIX = "ROLE_";
-        public static final String HAS_ROLE_ADMIN = "hasRole('ADMIN')";
         public static final String ADMIN_ROLE = "ADMIN";
+        public static final String DEFAULT_ROLE = "USER";
 
         public static final List<String> PUBLIC_PATHS = List.of(
                 "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/actuator/health/**", "/actuator/info",
@@ -66,16 +75,47 @@ public final class AppConstants {
         }
     }
 
+    /** Permission catalog (seeded by Flyway V4) and the expressions used in @PreAuthorize. */
+    public static final class Permissions {
+        public static final String SPACE_READ = "SPACE_READ";
+        public static final String SPACE_WRITE = "SPACE_WRITE";
+        public static final String USER_MANAGE = "USER_MANAGE";
+        public static final String RBAC_MANAGE = "RBAC_MANAGE";
+        public static final String METRICS_READ = "METRICS_READ";
+
+        public static final String HAS_SPACE_READ = "hasAuthority('" + SPACE_READ + "')";
+        public static final String HAS_SPACE_WRITE = "hasAuthority('" + SPACE_WRITE + "')";
+        public static final String HAS_USER_MANAGE = "hasAuthority('" + USER_MANAGE + "')";
+        public static final String HAS_RBAC_MANAGE = "hasAuthority('" + RBAC_MANAGE + "')";
+
+        /** ADMIN always keeps these so nobody gets locked out. */
+        public static final Set<String> ADMIN_LOCKED = Set.of(USER_MANAGE, RBAC_MANAGE);
+
+        private Permissions() {
+        }
+    }
+
+    public static final class Caches {
+        public static final String USER_AUTHORIZATION = "user-authorization";
+
+        private Caches() {
+        }
+    }
+
     public static final class Audit {
         public static final String LOGGER = "AUDIT";
         public static final String SYSTEM_USER = "system";
-        public static final String LOG_SUCCESS = "action={} user={} roles={} outcome=SUCCESS";
-        public static final String LOG_FAILURE = "action={} user={} roles={} outcome=FAILURE reason={}";
+        public static final String LOG_SUCCESS = "action={} user={} role={} outcome=SUCCESS";
+        public static final String LOG_FAILURE = "action={} user={} role={} outcome=FAILURE reason={}";
 
         public static final String SPACE_CREATE = "SPACE_CREATE";
         public static final String SPACE_UPDATE = "SPACE_UPDATE";
         public static final String SPACE_DELETE = "SPACE_DELETE";
         public static final String USER_REGISTER = "USER_REGISTER";
+        public static final String USER_CREATE = "USER_CREATE";
+        public static final String USER_STATUS_UPDATE = "USER_STATUS_UPDATE";
+        public static final String ROLE_CREATE = "ROLE_CREATE";
+        public static final String ROLE_PERMISSIONS_UPDATE = "ROLE_PERMISSIONS_UPDATE";
 
         private Audit() {
         }
@@ -101,6 +141,12 @@ public final class AppConstants {
         public static final String SPACE_NAME_TAKEN = "SPACE_NAME_TAKEN";
         public static final String EMAIL_TAKEN = "EMAIL_TAKEN";
         public static final String INVALID_CREDENTIALS = "INVALID_CREDENTIALS";
+        public static final String ACCOUNT_DISABLED = "ACCOUNT_DISABLED";
+        public static final String ROLE_NAME_TAKEN = "ROLE_NAME_TAKEN";
+        public static final String UNKNOWN_ROLE = "UNKNOWN_ROLE";
+        public static final String UNKNOWN_PERMISSION = "UNKNOWN_PERMISSION";
+        public static final String ADMIN_ROLE_LOCKOUT = "ADMIN_ROLE_LOCKOUT";
+        public static final String SELF_STATUS_CHANGE = "SELF_STATUS_CHANGE";
 
         private ErrorCodes() {
         }
@@ -164,6 +210,7 @@ public final class AppConstants {
             public static final String REQUEST_ERROR_TITLE = "Solicitud no procesable";
             public static final String REQUEST_ERROR_DETAIL = "No se pudo procesar la solicitud";
             public static final String BUSINESS_RULE_TITLE = "Regla de negocio incumplida";
+            public static final String UNPROCESSABLE_TITLE = "Operación no permitida";
             public static final String DATA_INTEGRITY_TITLE = "Conflicto de datos";
             public static final String DATA_INTEGRITY_DETAIL = "La solicitud entra en conflicto con el estado actual de los datos";
             public static final String CONCURRENT_MODIFICATION_TITLE = "Modificación concurrente";
@@ -188,6 +235,8 @@ public final class AppConstants {
             public static final String INVALID_VALUE = "tiene un valor inválido";
             public static final String EMAIL_FORMAT = "debe ser un email válido";
             public static final String LENGTH_RANGE = "debe tener entre {min} y {max} caracteres";
+            public static final String NOT_EMPTY = "debe tener al menos un elemento";
+            public static final String ROLE_NAME_FORMAT = "debe empezar por letra y contener solo letras, números y guiones bajos";
 
             private Validation() {
             }
@@ -211,12 +260,34 @@ public final class AppConstants {
             }
         }
 
+        public static final class Role {
+            public static final String RESOURCE_TYPE = "Role";
+            public static final String NAME_FIELD = "name";
+            public static final String NOT_FOUND = "Rol con id %s no encontrado";
+            public static final String NAME_TAKEN = "Ya existe un rol con el nombre '%s'";
+            public static final String UNKNOWN = "El rol '%s' no existe";
+            public static final String UNKNOWN_PERMISSIONS = "Permisos inexistentes: %s";
+            public static final String ADMIN_LOCKOUT = "El rol ADMIN debe conservar los permisos %s";
+
+            private Role() {
+            }
+        }
+
+        public static final class Admin {
+            public static final String SELF_STATUS_CHANGE = "Un administrador no puede cambiar el estado de su propia cuenta";
+
+            private Admin() {
+            }
+        }
+
         public static final class Auth {
             public static final String EMAIL_FIELD = "email";
             public static final String EMAIL_TAKEN = "Ya existe un usuario con el email '%s'";
             public static final String INVALID_CREDENTIALS_TITLE = "Credenciales inválidas";
             public static final String INVALID_CREDENTIALS_DETAIL = "Email o contraseña incorrectos";
             public static final String LOG_ADMIN_CREATED = "Usuario administrador inicial creado: {}";
+            public static final String ACCOUNT_DISABLED = "La cuenta está bloqueada";
+            public static final String TOKEN_USER_INACTIVE = "El usuario del token no existe o está bloqueado";
 
             private Auth() {
             }
@@ -236,6 +307,10 @@ public final class AppConstants {
         public static final int PASSWORD_MIN = 8;
         public static final int PASSWORD_MAX = 72;
         public static final int AUDITOR_MAX = 150;
+        public static final int ROLE_NAME_MAX = 50;
+        public static final int DESCRIPTION_MAX = 200;
+        /** Role names: letter first, then letters, digits or underscores; stored uppercase. */
+        public static final String ROLE_NAME_PATTERN = "\\s*[A-Za-z][A-Za-z0-9_]{1,49}\\s*";
 
         private Limits() {
         }

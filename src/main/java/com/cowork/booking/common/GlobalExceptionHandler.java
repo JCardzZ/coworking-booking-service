@@ -51,7 +51,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problem;
     }
 
-    // Concurrent requests that pass the service checks but hit a DB constraint.
+    // DB constraint hit by concurrent requests that passed the service check
     @ExceptionHandler(DataIntegrityViolationException.class)
     ProblemDetail handleDataIntegrity(DataIntegrityViolationException ex) {
         log.warn(Common.LOG_DATA_INTEGRITY, ex.getMostSpecificCause().getMessage());
@@ -75,10 +75,15 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(AuthenticationFailedException.class)
     ProblemDetail handleAuthenticationFailed(AuthenticationFailedException ex) {
         return ProblemDetails.of(HttpStatus.UNAUTHORIZED, Messages.Auth.INVALID_CREDENTIALS_TITLE, ex.getMessage(),
-                ErrorCodes.INVALID_CREDENTIALS);
+                ex.getCode());
     }
 
-    // @PreAuthorize denials happen inside MVC, so they reach the advice instead of the security handler.
+    @ExceptionHandler(UnprocessableOperationException.class)
+    ProblemDetail handleUnprocessable(UnprocessableOperationException ex) {
+        return ProblemDetails.of(HttpStatus.UNPROCESSABLE_ENTITY, Common.UNPROCESSABLE_TITLE, ex.getMessage(), ex.getCode());
+    }
+
+    // @PreAuthorize denials are thrown inside MVC, so they land here
     @ExceptionHandler(AccessDeniedException.class)
     ProblemDetail handleAccessDenied(AccessDeniedException ex) {
         return ProblemDetails.of(HttpStatus.FORBIDDEN, Common.FORBIDDEN_TITLE, Common.FORBIDDEN_DETAIL, ErrorCodes.FORBIDDEN);

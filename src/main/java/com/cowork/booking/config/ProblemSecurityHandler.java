@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.net.URI;
 
-/** 401/403 raised by the security filters, with the same body as the rest of the API. */
+/** Same error body for the 401/403 coming from the security filters. */
 @Component
 @RequiredArgsConstructor
 public class ProblemSecurityHandler implements AuthenticationEntryPoint, AccessDeniedHandler {
