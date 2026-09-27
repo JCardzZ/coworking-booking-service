@@ -86,6 +86,11 @@ public class Reservation extends AuditableEntity {
         this.status = status.state().confirm();
     }
 
+    // fail before charging anything if the reservation can't be confirmed anyway
+    public void checkCanConfirm() {
+        status.state().confirm();
+    }
+
     public void cancel(Instant now) {
         ReservationStatus next = status.state().cancel();
         if (!startAt.isAfter(now)) {

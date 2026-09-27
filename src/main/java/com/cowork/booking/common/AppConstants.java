@@ -35,6 +35,7 @@ public final class AppConstants {
         public static final String RESERVATIONS = "/reservations";
         public static final String RESERVATION_ID = "/{reservationId}";
         public static final String CANCEL = "/cancel";
+        public static final String CONFIRM = "/confirm";
 
         public static final String IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
 
@@ -76,7 +77,7 @@ public final class AppConstants {
                 Api.BASE_PATH + Api.AUTH + "/**");
 
         /** Operational data: only for administrators. */
-        public static final List<String> ADMIN_PATHS = List.of("/actuator/metrics/**");
+        public static final List<String> ADMIN_PATHS = List.of("/actuator/metrics/**", "/actuator/circuitbreakers/**");
 
         private Security() {
         }
@@ -101,6 +102,8 @@ public final class AppConstants {
         public static final String HAS_RESERVATION_CREATE = "hasAuthority('" + RESERVATION_CREATE + "')";
         public static final String CAN_READ_RESERVATIONS =
                 "hasAnyAuthority('" + RESERVATION_READ_OWN + "', '" + RESERVATION_READ_ALL + "')";
+        public static final String CAN_CONFIRM_RESERVATIONS =
+                "hasAnyAuthority('" + RESERVATION_CREATE + "', '" + RESERVATION_MANAGE_ALL + "')";
         public static final String CAN_CANCEL_RESERVATIONS =
                 "hasAnyAuthority('" + RESERVATION_CREATE + "', '" + RESERVATION_MANAGE_ALL + "')";
 
@@ -129,6 +132,7 @@ public final class AppConstants {
         public static final String SPACE_DELETE = "SPACE_DELETE";
         public static final String RESERVATION_CREATE = "RESERVATION_CREATE";
         public static final String RESERVATION_CANCEL = "RESERVATION_CANCEL";
+        public static final String RESERVATION_CONFIRM = "RESERVATION_CONFIRM";
         public static final String USER_REGISTER = "USER_REGISTER";
         public static final String USER_CREATE = "USER_CREATE";
         public static final String USER_STATUS_UPDATE = "USER_STATUS_UPDATE";
@@ -172,6 +176,7 @@ public final class AppConstants {
         public static final String RESERVATION_ALREADY_STARTED = "RESERVATION_ALREADY_STARTED";
         public static final String INVALID_RESERVATION_STATE = "INVALID_RESERVATION_STATE";
         public static final String IDEMPOTENCY_KEY_REUSED = "IDEMPOTENCY_KEY_REUSED";
+        public static final String PAYMENT_DECLINED = "PAYMENT_DECLINED";
 
         private ErrorCodes() {
         }
@@ -313,6 +318,8 @@ public final class AppConstants {
             public static final String IDEMPOTENCY_KEY_REUSED = "La Idempotency-Key ya se usó con otros datos de reserva";
             public static final String ACTION_CONFIRM = "confirmar";
             public static final String ACTION_CANCEL = "cancelar";
+            public static final String PAYMENT_DECLINED = "El pago fue rechazado; la reserva sigue pendiente de pago";
+            public static final String LOG_PAYMENT_UNAVAILABLE = "Payment service unavailable for reservation {}: {}";
             public static final String PERIOD_FIELD = "endAt";
 
             private Reservation() {

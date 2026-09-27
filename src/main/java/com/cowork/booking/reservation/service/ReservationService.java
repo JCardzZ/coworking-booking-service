@@ -10,6 +10,9 @@ import com.cowork.booking.common.BusinessRuleException;
 import com.cowork.booking.common.CurrentUser;
 import com.cowork.booking.common.ResourceNotFoundException;
 import com.cowork.booking.common.UnprocessableOperationException;
+import com.cowork.booking.reservation.client.PaymentClient;
+import com.cowork.booking.reservation.client.PaymentRequest;
+import com.cowork.booking.reservation.client.PaymentResult;
 import com.cowork.booking.reservation.dto.CreateReservationRequest;
 import com.cowork.booking.reservation.dto.ReservationFilter;
 import com.cowork.booking.reservation.dto.ReservationResponse;
@@ -26,7 +29,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -47,6 +52,8 @@ public class ReservationService {
     private final SpaceRepository spaceRepository;
     private final UserRepository userRepository;
     private final ReservationMapper reservationMapper;
+    private final PaymentClient paymentClient;
+    private final TransactionTemplate transactionTemplate;
     private final Clock clock;
 
     // created=false when it's a replay of the same Idempotency-Key
@@ -74,6 +81,26 @@ public class ReservationService {
         return new CreateResult(reservationMapper.toResponse(save(reservation)), true);
     }
 
+    // confirmed=false: payment provider unavailable, the reservation stays PENDING_PAYMENT and can be retried
+    public record ConfirmResult(ReservationResponse reservation, boolean confirmed) {
+    }
+
+    // no DB transaction open while we wait for the payment provider
+    @Audited(Audit.RESERVATION_CONFIRM)
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public ConfirmResult confirm(Long id) {
+        Reservation reservation = getVisible(id, Permissions.RESERVATION_MANAGE_ALL);
+        reservation.checkCanConfirm();
+        PaymentResult payment = paymentClient.validate(
+                new PaymentRequest(reservation.getId(), reservation.getUser().getId(), reservation.getTotalAmount()));
+        return switch (payment) {
+            case APPROVED -> new ConfirmResult(markConfirmed(id), true);
+            case DECLINED -> throw new UnprocessableOperationException(ErrorCodes.PAYMENT_DECLINED,
+                    Messages.Reservation.PAYMENT_DECLINED);
+            case UNAVAILABLE -> new ConfirmResult(reservationMapper.toResponse(reservation), false);
+        };
+    }
+
     public Page<ReservationResponse> findAll(ReservationFilter filter, Pageable pageable) {
         Long ownerId = CurrentUser.hasAuthority(Permissions.RESERVATION_READ_ALL)
                 ? filter.userId()
@@ -92,6 +119,14 @@ public class ReservationService {
         Reservation reservation = getVisible(id, Permissions.RESERVATION_MANAGE_ALL);
         reservation.cancel(clock.instant());
         return reservationMapper.toResponse(reservationRepository.saveAndFlush(reservation));
+    }
+
+    private ReservationResponse markConfirmed(Long id) {
+        return transactionTemplate.execute(tx -> {
+            Reservation reservation = reservationRepository.findWithDetailsById(id).orElseThrow(() -> notFound(id));
+            reservation.confirm();
+            return reservationMapper.toResponse(reservationRepository.saveAndFlush(reservation));
+        });
     }
 
     private CreateResult replay(Reservation previous, CreateReservationRequest request) {

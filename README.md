@@ -41,12 +41,24 @@ docker compose up
 | Health | http://localhost:8080/coworking-service/actuator/health (detalle solo ADMIN) |
 | Info | http://localhost:8080/coworking-service/actuator/info |
 | Métricas | http://localhost:8080/coworking-service/actuator/metrics (solo ADMIN) |
+| Circuit breakers | http://localhost:8080/coworking-service/actuator/circuitbreakers (solo ADMIN) |
 | WireMock | http://localhost:8081 |
 | PostgreSQL | `localhost:5433` (db, usuario y contraseña: `coworking`) |
 
 La app corre con el perfil `prod` y construye su imagen desde el `Dockerfile` del repositorio.
 
 Administrador inicial: `manuel.admin@coworking.com` / `Admin123!`. El token se obtiene con `POST /auth/login` y se envía como `Authorization: Bearer <token>`.
+
+WireMock simula el proveedor de pagos según el importe de la reserva (`POST /reservations/{id}/confirm`):
+
+| Importe | Respuesta del proveedor | Resultado |
+|---------|-------------------------|-----------|
+| cualquier otro | `APPROVED` | 200, reserva `CONFIRMED` |
+| >= 1000 | `DECLINED` | 422, sigue `PENDING_PAYMENT` |
+| 555 | 503 | 202, sigue `PENDING_PAYMENT` (cuenta como fallo) |
+| 333 | tarda 3 s | 202 al superar el timeout de 2 s |
+
+Con 5 fallos seguidos el circuito se abre durante 30 s: las confirmaciones responden 202 al instante sin llamar al proveedor, y su estado se ve en `/actuator/circuitbreakers` y en `/actuator/health`.
 
 ### Desarrollo local
 
@@ -114,6 +126,7 @@ src/main/resources
 - **Reservas sin solapamiento**: la regla se comprueba en el servicio (error claro) y además en PostgreSQL con una restricción `EXCLUDE USING gist` sobre `tstzrange(start_at, end_at)`, que impide dobles reservas incluso con peticiones simultáneas. Los rangos son semiabiertos `[inicio, fin)`, así que se permiten reservas contiguas.
 - **Patrón State (GoF)**: cada estado de la reserva (`PENDING_PAYMENT`, `CONFIRMED`, `CANCELLED`) decide qué transiciones permite; una transición inválida responde 409 sin `if/else` repartidos por el servicio.
 - **Idempotency-Key**: obligatoria al crear reservas; reenviar la misma clave devuelve la reserva original en vez de duplicarla.
+- **Pago con circuit breaker (Resilience4j)**: la confirmación llama al proveedor fuera de cualquier transacción, para no tener una conexión a la base ocupada mientras se espera la respuesta, y solo abre una transacción corta para marcarla `CONFIRMED`. Si el proveedor falla, tarda más de 2 s o el circuito está abierto, el fallback deja la reserva en `PENDING_PAYMENT` y responde 202 para reintentarla después; un rechazo del pago no es un fallo del proveedor y responde 422. El indicador del circuito se muestra en `/actuator/health`, pero no lo pone en DOWN: un proveedor externo caído no debe hacer que la plataforma reinicie la app.
 - **Credenciales de evaluación**: el admin inicial se crea al arrancar desde `ADMIN_EMAIL`/`ADMIN_PASSWORD`, y `JWT_SECRET` firma los tokens. Los valores del README, `.env.example` y `docker-compose.yml` son solo para evaluación; en un despliegue real se sustituyen por secretos gestionados (vault o secretos del orquestador).
 
 _Resto pendiente de completar._

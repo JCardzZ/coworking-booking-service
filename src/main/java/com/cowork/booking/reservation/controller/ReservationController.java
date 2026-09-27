@@ -109,6 +109,28 @@ public class ReservationController {
         return reservationService.findById(reservationId);
     }
 
+    @PostMapping(Api.RESERVATION_ID + Api.CONFIRM)
+    @PreAuthorize(Permissions.CAN_CONFIRM_RESERVATIONS)
+    @Operation(operationId = "confirmReservation", summary = "Confirmar y pagar una reserva",
+            description = "Valida el pago contra el servicio externo, protegido con circuit breaker. Si el pago se aprueba "
+                    + "pasa a CONFIRMED (200). Si el servicio de pagos no responde o el circuito está abierto, la reserva "
+                    + "sigue en PENDING_PAYMENT (202) y se puede reintentar más tarde.")
+    @ApiResponse(responseCode = "200", description = "Pago aprobado, reserva confirmada")
+    @ApiResponse(responseCode = "202", description = "Servicio de pagos no disponible: sigue en PENDING_PAYMENT")
+    @ApiResponse(responseCode = "404", description = "Reserva no encontrada",
+            content = @Content(mediaType = ApiDocs.PROBLEM_JSON, schema = @Schema(implementation = NotFoundProblem.class)))
+    @ApiResponse(responseCode = "409", description = "La reserva no está pendiente de pago",
+            content = @Content(mediaType = ApiDocs.PROBLEM_JSON, schema = @Schema(implementation = ConflictProblem.class)))
+    @ApiResponse(responseCode = "422", description = "Pago rechazado: sigue en PENDING_PAYMENT",
+            content = @Content(mediaType = ApiDocs.PROBLEM_JSON, schema = @Schema(implementation = Problem.class)))
+    public ResponseEntity<ReservationResponse> confirm(@Parameter(description = "Id de la reserva", example = "10")
+                                                       @PathVariable Long reservationId) {
+        ReservationService.ConfirmResult result = reservationService.confirm(reservationId);
+        return result.confirmed()
+                ? ResponseEntity.ok(result.reservation())
+                : ResponseEntity.accepted().body(result.reservation());
+    }
+
     @PostMapping(Api.RESERVATION_ID + Api.CANCEL)
     @PreAuthorize(Permissions.CAN_CANCEL_RESERVATIONS)
     @Operation(operationId = "cancelReservation", summary = "Cancelar una reserva",
