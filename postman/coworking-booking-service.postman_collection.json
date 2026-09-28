@@ -2,7 +2,7 @@
   "info": {
     "name": "Coworking Booking Service",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Pruebas de la API de punta a punta. Elige el entorno (Local o Render) y corre las carpetas en orden, de 00 a 05: los requests de cada carpeta están numerados en el orden en que deben correr, y cada uno guarda lo que necesita el siguiente (tokens, ids, fechas) y trae sus propias pruebas.\n\n- 00 · Sesión: tokens del admin y del usuario. Siempre primero.\n- 01 · Flujo completo: el recorrido normal, de crear un espacio a ver la ocupación.\n- 02 · Mantenimientos: espacios, roles y usuarios.\n- 03 · Lógica de negocio: reservas, pagos y reporte cuando todo sale bien.\n- 04 · Casos de prueba: validaciones, permisos, rechazos y fallas del proveedor.\n- 05 · Operación: actuator y documentación.\n\nSe puede correr las veces que quieras, los nombres y claves se generan en cada corrida. En Render, si el servicio estaba dormido, la primera petición tarda cerca de un minuto."
+    "description": "Pruebas de la API de punta a punta. Elige el entorno (Local o Render) y corre las carpetas en orden, de 00 a 05: los requests de cada carpeta están numerados en el orden en que deben correr, y cada uno guarda lo que necesita el siguiente (tokens, ids, fechas) y trae sus propias pruebas.\n\n- 00 · Sesión: tokens del admin y del usuario. Siempre primero.\n- 01 · Flujo completo: el recorrido normal, de crear un espacio a ver la ocupación.\n- 02 · Mantenimientos: espacios, roles y usuarios.\n- 03 · Lógica de negocio: reservas, pagos y reporte cuando todo sale bien.\n- 04 · Casos de prueba: validaciones, permisos, rechazos y fallas del proveedor.\n- 05 · Operación: actuator y documentación.\n\nSe puede correr las veces que quieras, los nombres y claves se generan en cada corrida. Si una carpeta dice \"necesita …\", corre esa primero. Y si una variable sale en rojo en la URL o el body, falta correr el paso anterior.\n\nEn Render, si el servicio estaba dormido, la primera petición tarda cerca de un minuto."
   },
   "auth": {
     "type": "bearer",
@@ -151,7 +151,7 @@
   ],
   "item": [
     {
-      "name": "00 · Sesión",
+      "name": "00 · Sesión · siempre primero",
       "item": [
         {
           "name": "1. Registrar usuario",
@@ -556,7 +556,7 @@
       "name": "02 · Mantenimientos",
       "item": [
         {
-          "name": "Espacios",
+          "name": "1. Espacios",
           "item": [
             {
               "name": "1. Crear espacio (ADMIN)",
@@ -767,7 +767,7 @@
           "description": "Alta, consulta, filtros y edición. El admin escribe, el usuario solo lee."
         },
         {
-          "name": "Roles y permisos",
+          "name": "2. Roles y permisos",
           "item": [
             {
               "name": "1. Catálogo de permisos",
@@ -854,7 +854,7 @@
           "description": "Catálogo de permisos y un rol nuevo que solo puede leer espacios."
         },
         {
-          "name": "Usuarios",
+          "name": "3. Usuarios · necesita 2. Roles y permisos",
           "item": [
             {
               "name": "1. Crear usuario con rol personalizado",
@@ -966,7 +966,7 @@
               }
             }
           ],
-          "description": "El admin crea un usuario con el rol nuevo y este hace login."
+          "description": "Antes corre: 02 › 2. Roles y permisos (crea el rol que usa este usuario).\n\nEl admin crea un usuario con el rol nuevo y este hace login."
         }
       ],
       "description": "Lo que administra el admin: espacios, roles y usuarios."
@@ -975,7 +975,7 @@
       "name": "03 · Lógica de negocio",
       "item": [
         {
-          "name": "Reservas",
+          "name": "1. Reservas",
           "item": [
             {
               "name": "1. Crear espacio para reservas (ADMIN)",
@@ -1283,10 +1283,10 @@
           "description": "Crear, reintentar con la misma Idempotency-Key, reservar el horario siguiente y consultar."
         },
         {
-          "name": "Pago y confirmación",
+          "name": "2. Pago y confirmación · necesita 1. Reservas",
           "item": [
             {
-              "name": "Pago aprobado",
+              "name": "1. Pago aprobado",
               "item": [
                 {
                   "name": "1. Espacio con tarifa 20",
@@ -1429,7 +1429,7 @@
               ]
             },
             {
-              "name": "Pago rechazado y reintento con otra tarjeta",
+              "name": "2. Pago rechazado y reintento con otra tarjeta",
               "item": [
                 {
                   "name": "1. Espacio con tarifa 20",
@@ -1596,7 +1596,7 @@
               "description": "Primero falla por fondos, luego paga con otra tarjeta. El historial muestra los dos intentos."
             },
             {
-              "name": "Transferencia aprobada",
+              "name": "3. Transferencia aprobada",
               "item": [
                 {
                   "name": "1. Espacio",
@@ -1710,10 +1710,10 @@
               ]
             }
           ],
-          "description": "Cada confirmación manda un método de pago y el mock de pagos responde según lo que recibe: tok_insufficient_funds, tok_expired y las cuentas SV00... se rechazan; una reserva de 555 recibe un 503 (se reintenta una vez) y una de 333 tarda 3 s. El resto se aprueba."
+          "description": "Antes corre: 03 › 1. Reservas (calcula las fechas que usan estas reservas).\n\nCada confirmación manda un método de pago y el mock de pagos responde según lo que recibe: tok_insufficient_funds, tok_expired y las cuentas SV00... se rechazan; una reserva de 555 recibe un 503 (se reintenta una vez) y una de 333 tarda 3 s. El resto se aprueba."
         },
         {
-          "name": "Reporte de ocupación",
+          "name": "3. Reporte de ocupación · necesita 2. Pago",
           "item": [
             {
               "name": "1. Ocupación de todos los espacios",
@@ -1768,7 +1768,7 @@
               }
             }
           ],
-          "description": "Ocupación por espacio: horas confirmadas sobre 24 h por día (UTC). Solo el admin. El resultado se cachea y se refresca al confirmar o cancelar."
+          "description": "Antes corre: 03 › 2. Pago y confirmación (el reporte mide la reserva pagada ahí).\n\nOcupación por espacio: horas confirmadas sobre 24 h por día (UTC). Solo el admin. El resultado se cachea y se refresca al confirmar o cancelar."
         }
       ],
       "description": "Los flujos del negocio cuando todo sale bien."
@@ -1777,7 +1777,7 @@
       "name": "04 · Casos de prueba",
       "item": [
         {
-          "name": "Login y registro",
+          "name": "1. Login y registro",
           "item": [
             {
               "name": "1. Registro con email duplicado",
@@ -1943,10 +1943,10 @@
           ]
         },
         {
-          "name": "Espacios",
+          "name": "2. Espacios · necesita 02 › 1. Espacios",
           "item": [
             {
-              "name": "Permisos",
+              "name": "1. Permisos",
               "item": [
                 {
                   "name": "1. Listar sin token",
@@ -2074,7 +2074,7 @@
               ]
             },
             {
-              "name": "Validaciones",
+              "name": "2. Validaciones",
               "item": [
                 {
                   "name": "1. Crear con datos inválidos",
@@ -2345,7 +2345,7 @@
               ]
             },
             {
-              "name": "Trazabilidad",
+              "name": "3. Trazabilidad",
               "item": [
                 {
                   "name": "1. X-Correlation-Id propio se devuelve",
@@ -2386,7 +2386,7 @@
               ]
             },
             {
-              "name": "Borrado lógico",
+              "name": "4. Borrado lógico · al final, borra el espacio",
               "item": [
                 {
                   "name": "1. Eliminar espacio (ADMIN)",
@@ -2468,11 +2468,12 @@
               ],
               "description": "Eliminar solo desactiva el espacio, y su nombre queda libre para uno nuevo."
             }
-          ]
+          ],
+          "description": "Antes corre: 02 › 1. Espacios (usa el espacio creado ahí)."
         },
         {
-          "name": "Permisos que cambian al momento",
-          "description": "El mismo token gana permisos en cuanto cambia su rol, sin volver a hacer login.",
+          "name": "3. Permisos que cambian al momento · necesita 02 › 3. Usuarios",
+          "description": "Antes corre: 02 › 3. Usuarios (usa el token del usuario staff).\n\nEl mismo token gana permisos en cuanto cambia su rol, sin volver a hacer login.",
           "item": [
             {
               "name": "1. Staff lee espacios (SPACE_READ)",
@@ -2630,7 +2631,7 @@
           ]
         },
         {
-          "name": "Bloqueo de cuentas",
+          "name": "4. Bloqueo de cuentas · necesita 02 › 3. Usuarios",
           "item": [
             {
               "name": "1. Bloquear usuario",
@@ -2752,13 +2753,13 @@
               }
             }
           ],
-          "description": "Un usuario bloqueado pierde el acceso al momento, aunque su token no haya vencido."
+          "description": "Antes corre: 02 › 3. Usuarios (bloquea y reactiva al usuario staff).\n\nUn usuario bloqueado pierde el acceso al momento, aunque su token no haya vencido."
         },
         {
-          "name": "Administración",
+          "name": "5. Administración · necesita 02 › 2 y 3",
           "item": [
             {
-              "name": "Validaciones",
+              "name": "1. Validaciones",
               "item": [
                 {
                   "name": "1. Crear rol duplicado",
@@ -2986,7 +2987,7 @@
               ]
             },
             {
-              "name": "Permisos",
+              "name": "2. Permisos",
               "item": [
                 {
                   "name": "1. USER lista usuarios",
@@ -3096,13 +3097,14 @@
                 }
               ]
             }
-          ]
+          ],
+          "description": "Antes corre: 02 › 2. Roles y permisos y 3. Usuarios."
         },
         {
-          "name": "Reservas",
+          "name": "6. Reservas · necesita 03 › 1. Reservas",
           "item": [
             {
-              "name": "Validaciones",
+              "name": "1. Validaciones",
               "item": [
                 {
                   "name": "1. Horario solapado",
@@ -3492,7 +3494,7 @@
               ]
             },
             {
-              "name": "Visibilidad y permisos",
+              "name": "2. Visibilidad y permisos",
               "item": [
                 {
                   "name": "1. ADMIN reserva para sí",
@@ -3703,7 +3705,7 @@
               "description": "Un usuario no ve ni toca reservas ajenas (responde 404, no 403, para no revelar que existen). El admin ve todas."
             },
             {
-              "name": "Cancelación",
+              "name": "3. Cancelación · necesita 2. Visibilidad",
               "item": [
                 {
                   "name": "1. Cancelar mi reserva",
@@ -3835,15 +3837,17 @@
                     "url": "{{baseUrl}}/api/v1/reservations/{{adminResId}}/cancel"
                   }
                 }
-              ]
+              ],
+              "description": "Antes corre: 04 › 6. Reservas › 2. Visibilidad y permisos (crea la reserva del admin)."
             }
-          ]
+          ],
+          "description": "Antes corre: 03 › 1. Reservas, recién corrida (usa esa reserva y su horario)."
         },
         {
-          "name": "Pagos rechazados",
+          "name": "7. Pagos rechazados · necesita 03 › 1 y 2",
           "item": [
             {
-              "name": "Tarjeta vencida",
+              "name": "1. Tarjeta vencida",
               "item": [
                 {
                   "name": "1. Espacio",
@@ -3957,7 +3961,7 @@
               ]
             },
             {
-              "name": "Cuenta no aceptada",
+              "name": "2. Cuenta no aceptada",
               "item": [
                 {
                   "name": "1. Espacio",
@@ -4071,7 +4075,7 @@
               ]
             },
             {
-              "name": "Método de pago inválido",
+              "name": "3. Método de pago inválido",
               "item": [
                 {
                   "name": "1. Sin método de pago",
@@ -4161,7 +4165,7 @@
               ]
             },
             {
-              "name": "Permisos",
+              "name": "4. Permisos",
               "item": [
                 {
                   "name": "1. USER confirma la reserva de otro",
@@ -4234,13 +4238,14 @@
                 }
               ]
             }
-          ]
+          ],
+          "description": "Antes corre: 03 › 1. Reservas y 2. Pago y confirmación."
         },
         {
-          "name": "Resiliencia del proveedor",
+          "name": "8. Resiliencia del proveedor · necesita 03 › 1. Reservas",
           "item": [
             {
-              "name": "Proveedor con error (503)",
+              "name": "1. Proveedor con error (503)",
               "item": [
                 {
                   "name": "1. Espacio con tarifa 555",
@@ -4355,7 +4360,7 @@
               "description": "El proveedor falla: se reintenta una vez y la reserva queda pendiente (202)."
             },
             {
-              "name": "Proveedor lento (timeout)",
+              "name": "2. Proveedor lento (timeout)",
               "item": [
                 {
                   "name": "1. Espacio con tarifa 333",
@@ -4470,13 +4475,13 @@
               "description": "El proveedor tarda más de 2 s: no se reintenta y la reserva queda pendiente (202)."
             }
           ],
-          "description": "El proveedor falla o tarda: la reserva no se pierde, queda pendiente y se puede reintentar."
+          "description": "Antes corre: 03 › 1. Reservas (usa sus fechas).\n\nEl proveedor falla o tarda: la reserva no se pierde, queda pendiente y se puede reintentar."
         },
         {
-          "name": "Reporte",
+          "name": "9. Reporte · necesita 03 › 3. Reporte",
           "item": [
             {
-              "name": "Validaciones",
+              "name": "1. Validaciones",
               "item": [
                 {
                   "name": "1. Rango invertido",
@@ -4538,7 +4543,7 @@
               ]
             },
             {
-              "name": "Permisos",
+              "name": "2. Permisos",
               "item": [
                 {
                   "name": "1. USER sin REPORT_READ",
@@ -4593,7 +4598,8 @@
                 }
               ]
             }
-          ]
+          ],
+          "description": "Antes corre: 03 › 3. Reporte de ocupación (define el día que consulta)."
         }
       ],
       "description": "Errores, permisos y casos borde de cada parte."
@@ -4602,11 +4608,11 @@
       "name": "05 · Operación",
       "item": [
         {
-          "name": "Actuator",
-          "description": "health e info son públicos. Métricas, circuit breaker y reintentos, solo con admin.",
+          "name": "1. Actuator · la métrica de pagos necesita 03 › 2. Pago",
+          "description": "Antes corre: 03 › 2. Pago y confirmación, para que exista la métrica de pagos.\n\nhealth e info son públicos. Métricas, circuit breaker y reintentos, solo con admin.",
           "item": [
             {
-              "name": "Públicos",
+              "name": "1. Públicos",
               "item": [
                 {
                   "name": "1. Health (sin detalle)",
@@ -4658,7 +4664,7 @@
               ]
             },
             {
-              "name": "ADMIN",
+              "name": "2. ADMIN",
               "item": [
                 {
                   "name": "1. Health con detalle",
@@ -4801,7 +4807,7 @@
               ]
             },
             {
-              "name": "Seguridad",
+              "name": "3. Seguridad",
               "item": [
                 {
                   "name": "1. Métricas como USER",
@@ -4861,7 +4867,7 @@
           ]
         },
         {
-          "name": "Documentación",
+          "name": "2. Documentación",
           "item": [
             {
               "name": "1. Swagger UI",
