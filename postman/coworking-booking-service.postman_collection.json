@@ -177,7 +177,7 @@
             "url": "{{baseUrl}}/api/v1/auth/register",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"fullName\": \"Ana Pérez\"\n}"
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"fullName\": \"Manuel Cardoza\"\n}"
             },
             "auth": {
               "type": "noauth"
@@ -842,7 +842,7 @@
                 "url": "{{baseUrl}}/api/v1/admin/users",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"email\": \"{{staffEmail}}\",\n  \"password\": \"Staff12345\",\n  \"fullName\": \"Manuel Staff\",\n  \"role\": \"{{roleName}}\"\n}"
+                  "raw": "{\n  \"email\": \"{{staffEmail}}\",\n  \"password\": \"Staff12345\",\n  \"fullName\": \"Manuel Cardoza\",\n  \"role\": \"{{roleName}}\"\n}"
                 }
               }
             },
@@ -1703,7 +1703,7 @@
                 "url": "{{baseUrl}}/api/v1/auth/register",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"fullName\": \"Ana\"\n}"
+                  "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"fullName\": \"Manuel Cardoza\"\n}"
                 },
                 "auth": {
                   "type": "noauth"
@@ -2800,7 +2800,7 @@
                     "url": "{{baseUrl}}/api/v1/admin/users",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"email\": \"nadie@coworking.com\",\n  \"password\": \"{{userPassword}}\",\n  \"fullName\": \"Nadie\",\n  \"role\": \"GHOST\"\n}"
+                      "raw": "{\n  \"email\": \"nadie@coworking.com\",\n  \"password\": \"{{userPassword}}\",\n  \"fullName\": \"Manuel Cardoza\",\n  \"role\": \"GHOST\"\n}"
                     }
                   }
                 },
@@ -2829,7 +2829,7 @@
                     "url": "{{baseUrl}}/api/v1/admin/users",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"fullName\": \"Dup\",\n  \"role\": \"USER\"\n}"
+                      "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"fullName\": \"Manuel Cardoza\",\n  \"role\": \"USER\"\n}"
                     }
                   }
                 },
