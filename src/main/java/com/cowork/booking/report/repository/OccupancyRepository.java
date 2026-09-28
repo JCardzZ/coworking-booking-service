@@ -10,12 +10,13 @@ import java.util.List;
 
 public interface OccupancyRepository extends Repository<Space, Long> {
 
-    // one query for every space; each reservation is clipped to the range so one crossing the edges only counts its inside part
+    // FILTER: without it LEAST/GREATEST skip the nulls and an empty space shows 100%
     @Query(nativeQuery = true, value = """
             SELECT s.id AS spaceId,
                    s.name AS spaceName,
                    COUNT(r.id) AS confirmedReservations,
-                   COALESCE(SUM(EXTRACT(EPOCH FROM LEAST(r.end_at, :to) - GREATEST(r.start_at, :from))), 0) AS reservedSeconds
+                   COALESCE(SUM(EXTRACT(EPOCH FROM LEAST(r.end_at, :to) - GREATEST(r.start_at, :from)))
+                            FILTER (WHERE r.id IS NOT NULL), 0) AS reservedSeconds
             FROM spaces s
                      LEFT JOIN reservations r
                                ON r.space_id = s.id

@@ -61,6 +61,18 @@ class OccupancyReportIT extends IntegrationTest {
     }
 
     @Test
+    void spaceWithoutReservationsIsEmpty() throws Exception {
+        LocalDate day = LocalDate.now(ZoneOffset.UTC).plusDays(20);
+        Long spaceId = createSpace(20);
+
+        report(spaceId, day, day)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.spaces[0].confirmedReservations").value(0))
+                .andExpect(jsonPath("$.spaces[0].reservedHours").value(0.0))
+                .andExpect(jsonPath("$.spaces[0].occupancyPercent").value(0.0));
+    }
+
+    @Test
     void invalidRangeIsRejected() throws Exception {
         LocalDate day = LocalDate.now(ZoneOffset.UTC);
 
