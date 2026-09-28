@@ -615,7 +615,55 @@
               "request": {
                 "method": "GET",
                 "header": [],
-                "url": "{{baseUrl}}/api/v1/spaces",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/spaces",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "spaces"
+                  ],
+                  "query": [
+                    {
+                      "key": "type",
+                      "value": "MEETING_ROOM",
+                      "description": "MEETING_ROOM, DESK o PRIVATE_OFFICE",
+                      "disabled": true
+                    },
+                    {
+                      "key": "minCapacity",
+                      "value": "4",
+                      "description": "Capacidad mínima",
+                      "disabled": true
+                    },
+                    {
+                      "key": "location",
+                      "value": "piso",
+                      "description": "Parte de la ubicación",
+                      "disabled": true
+                    },
+                    {
+                      "key": "page",
+                      "value": "0",
+                      "description": "Página, empieza en 0",
+                      "disabled": true
+                    },
+                    {
+                      "key": "size",
+                      "value": "10",
+                      "description": "Resultados por página (máx. 100)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sort",
+                      "value": "name,asc",
+                      "description": "Campo y dirección",
+                      "disabled": true
+                    }
+                  ]
+                },
                 "auth": {
                   "type": "bearer",
                   "bearer": [
@@ -1136,7 +1184,60 @@
               "request": {
                 "method": "GET",
                 "header": [],
-                "url": "{{baseUrl}}/api/v1/reservations?spaceId={{resSpaceId}}",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reservations?spaceId={{resSpaceId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "reservations"
+                  ],
+                  "query": [
+                    {
+                      "key": "spaceId",
+                      "value": "{{resSpaceId}}",
+                      "description": "Solo este espacio"
+                    },
+                    {
+                      "key": "status",
+                      "value": "PENDING_PAYMENT",
+                      "description": "PENDING_PAYMENT, CONFIRMED o CANCELLED",
+                      "disabled": true
+                    },
+                    {
+                      "key": "from",
+                      "value": "2026-01-01T00:00:00Z",
+                      "description": "Reservas que terminan después de esta fecha",
+                      "disabled": true
+                    },
+                    {
+                      "key": "to",
+                      "value": "2030-01-01T00:00:00Z",
+                      "description": "Reservas que empiezan antes de esta fecha",
+                      "disabled": true
+                    },
+                    {
+                      "key": "page",
+                      "value": "0",
+                      "description": "Página, empieza en 0",
+                      "disabled": true
+                    },
+                    {
+                      "key": "size",
+                      "value": "10",
+                      "description": "Resultados por página (máx. 100)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sort",
+                      "value": "startAt,desc",
+                      "description": "Campo y dirección",
+                      "disabled": true
+                    }
+                  ]
+                },
                 "auth": {
                   "type": "bearer",
                   "bearer": [
@@ -3512,7 +3613,48 @@
                   "request": {
                     "method": "GET",
                     "header": [],
-                    "url": "{{baseUrl}}/api/v1/reservations?spaceId={{resSpaceId}}"
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/reservations?spaceId={{resSpaceId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "reservations"
+                      ],
+                      "query": [
+                        {
+                          "key": "spaceId",
+                          "value": "{{resSpaceId}}",
+                          "description": "Solo este espacio"
+                        },
+                        {
+                          "key": "userId",
+                          "value": "2",
+                          "description": "Solo el admin puede filtrar por usuario",
+                          "disabled": true
+                        },
+                        {
+                          "key": "page",
+                          "value": "0",
+                          "description": "Página, empieza en 0",
+                          "disabled": true
+                        },
+                        {
+                          "key": "size",
+                          "value": "10",
+                          "description": "Resultados por página (máx. 100)",
+                          "disabled": true
+                        },
+                        {
+                          "key": "sort",
+                          "value": "startAt,desc",
+                          "description": "Campo y dirección",
+                          "disabled": true
+                        }
+                      ]
+                    }
                   }
                 },
                 {
