@@ -2,7 +2,7 @@
   "info": {
     "name": "Coworking Booking Service",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Pruebas de la API de punta a punta. Elige el entorno (Local o Render) y corre las carpetas en orden, de 00 a 05: cada request guarda lo que necesita el siguiente (tokens, ids, fechas) y trae sus propias pruebas.\n\n- 00 · Sesión: tokens del admin y del usuario. Siempre primero.\n- 01 · Flujo completo: el recorrido normal, de crear un espacio a ver la ocupación.\n- 02 · Mantenimientos: espacios, roles y usuarios.\n- 03 · Lógica de negocio: reservas, pagos y reporte cuando todo sale bien.\n- 04 · Casos de prueba: validaciones, permisos, rechazos y fallas del proveedor.\n- 05 · Operación: actuator y documentación.\n\nSe puede correr las veces que quieras, los nombres y claves se generan en cada corrida. En Render, si el servicio estaba dormido, la primera petición tarda cerca de un minuto."
+    "description": "Pruebas de la API de punta a punta. Elige el entorno (Local o Render) y corre las carpetas en orden, de 00 a 05: los requests de cada carpeta están numerados en el orden en que deben correr, y cada uno guarda lo que necesita el siguiente (tokens, ids, fechas) y trae sus propias pruebas.\n\n- 00 · Sesión: tokens del admin y del usuario. Siempre primero.\n- 01 · Flujo completo: el recorrido normal, de crear un espacio a ver la ocupación.\n- 02 · Mantenimientos: espacios, roles y usuarios.\n- 03 · Lógica de negocio: reservas, pagos y reporte cuando todo sale bien.\n- 04 · Casos de prueba: validaciones, permisos, rechazos y fallas del proveedor.\n- 05 · Operación: actuator y documentación.\n\nSe puede correr las veces que quieras, los nombres y claves se generan en cada corrida. En Render, si el servicio estaba dormido, la primera petición tarda cerca de un minuto."
   },
   "auth": {
     "type": "bearer",
@@ -154,7 +154,7 @@
       "name": "00 · Sesión",
       "item": [
         {
-          "name": "Registrar usuario",
+          "name": "1. Registrar usuario",
           "event": [
             {
               "listen": "test",
@@ -185,7 +185,7 @@
           }
         },
         {
-          "name": "Login admin",
+          "name": "2. Login admin",
           "event": [
             {
               "listen": "test",
@@ -218,7 +218,7 @@
           }
         },
         {
-          "name": "Login usuario",
+          "name": "3. Login usuario",
           "event": [
             {
               "listen": "test",
@@ -250,7 +250,7 @@
           }
         },
         {
-          "name": "Mi perfil (USER)",
+          "name": "4. Mi perfil (USER)",
           "event": [
             {
               "listen": "test",
@@ -280,7 +280,7 @@
           }
         },
         {
-          "name": "Mi perfil (ADMIN)",
+          "name": "5. Mi perfil (ADMIN)",
           "event": [
             {
               "listen": "test",
@@ -559,7 +559,7 @@
           "name": "Espacios",
           "item": [
             {
-              "name": "Crear espacio (ADMIN)",
+              "name": "1. Crear espacio (ADMIN)",
               "event": [
                 {
                   "listen": "test",
@@ -599,7 +599,7 @@
               }
             },
             {
-              "name": "Listar espacios (USER)",
+              "name": "2. Listar espacios (USER)",
               "event": [
                 {
                   "listen": "test",
@@ -629,7 +629,7 @@
               }
             },
             {
-              "name": "Listar con filtros y orden",
+              "name": "3. Listar con filtros y orden",
               "event": [
                 {
                   "listen": "test",
@@ -658,7 +658,7 @@
               }
             },
             {
-              "name": "Obtener espacio por id (USER)",
+              "name": "4. Obtener espacio por id (USER)",
               "event": [
                 {
                   "listen": "test",
@@ -687,7 +687,7 @@
               }
             },
             {
-              "name": "Actualizar espacio (ADMIN)",
+              "name": "5. Actualizar espacio (ADMIN)",
               "event": [
                 {
                   "listen": "test",
@@ -722,7 +722,7 @@
           "name": "Roles y permisos",
           "item": [
             {
-              "name": "Catálogo de permisos",
+              "name": "1. Catálogo de permisos",
               "event": [
                 {
                   "listen": "test",
@@ -742,7 +742,7 @@
               }
             },
             {
-              "name": "Listar roles",
+              "name": "2. Listar roles",
               "event": [
                 {
                   "listen": "test",
@@ -764,7 +764,7 @@
               }
             },
             {
-              "name": "Crear rol (solo lectura de espacios)",
+              "name": "3. Crear rol (solo lectura de espacios)",
               "event": [
                 {
                   "listen": "test",
@@ -809,7 +809,7 @@
           "name": "Usuarios",
           "item": [
             {
-              "name": "Crear usuario con rol personalizado",
+              "name": "1. Crear usuario con rol personalizado",
               "event": [
                 {
                   "listen": "test",
@@ -847,7 +847,7 @@
               }
             },
             {
-              "name": "Listar usuarios",
+              "name": "2. Listar usuarios",
               "event": [
                 {
                   "listen": "test",
@@ -867,7 +867,7 @@
               }
             },
             {
-              "name": "Obtener usuario por id",
+              "name": "3. Obtener usuario por id",
               "event": [
                 {
                   "listen": "test",
@@ -886,7 +886,7 @@
               }
             },
             {
-              "name": "Login del usuario creado",
+              "name": "4. Login del usuario creado",
               "event": [
                 {
                   "listen": "test",
@@ -930,7 +930,7 @@
           "name": "Reservas",
           "item": [
             {
-              "name": "Crear espacio para reservas (ADMIN)",
+              "name": "1. Crear espacio para reservas (ADMIN)",
               "event": [
                 {
                   "listen": "test",
@@ -972,7 +972,7 @@
               }
             },
             {
-              "name": "Crear reserva (USER)",
+              "name": "2. Crear reserva (USER)",
               "event": [
                 {
                   "listen": "test",
@@ -1026,7 +1026,7 @@
               }
             },
             {
-              "name": "Reintento con la misma Idempotency-Key",
+              "name": "3. Reintento con la misma Idempotency-Key",
               "event": [
                 {
                   "listen": "test",
@@ -1069,7 +1069,7 @@
               }
             },
             {
-              "name": "Reserva contigua (empieza cuando termina la otra)",
+              "name": "4. Reserva contigua (empieza cuando termina la otra)",
               "event": [
                 {
                   "listen": "test",
@@ -1120,7 +1120,7 @@
               }
             },
             {
-              "name": "Listar mis reservas",
+              "name": "5. Listar mis reservas",
               "event": [
                 {
                   "listen": "test",
@@ -1150,7 +1150,7 @@
               }
             },
             {
-              "name": "Obtener mi reserva",
+              "name": "6. Obtener mi reserva",
               "event": [
                 {
                   "listen": "test",
@@ -1188,7 +1188,7 @@
               "name": "Pago aprobado",
               "item": [
                 {
-                  "name": "Espacio con tarifa 20",
+                  "name": "1. Espacio con tarifa 20",
                   "event": [
                     {
                       "listen": "test",
@@ -1226,7 +1226,7 @@
                   }
                 },
                 {
-                  "name": "Reserva de 1h (importe 20)",
+                  "name": "2. Reserva de 1h (importe 20)",
                   "event": [
                     {
                       "listen": "test",
@@ -1268,7 +1268,7 @@
                   }
                 },
                 {
-                  "name": "Confirmar",
+                  "name": "3. Confirmar",
                   "event": [
                     {
                       "listen": "test",
@@ -1298,7 +1298,7 @@
                   }
                 },
                 {
-                  "name": "Confirmar otra vez",
+                  "name": "4. Confirmar otra vez",
                   "event": [
                     {
                       "listen": "test",
@@ -1331,7 +1331,7 @@
               "name": "Pago rechazado y reintento con otra tarjeta",
               "item": [
                 {
-                  "name": "Espacio con tarifa 20",
+                  "name": "1. Espacio con tarifa 20",
                   "event": [
                     {
                       "listen": "test",
@@ -1369,7 +1369,7 @@
                   }
                 },
                 {
-                  "name": "Reserva de 1h (importe 20)",
+                  "name": "2. Reserva de 1h (importe 20)",
                   "event": [
                     {
                       "listen": "test",
@@ -1411,7 +1411,7 @@
                   }
                 },
                 {
-                  "name": "Confirmar con tarjeta sin fondos",
+                  "name": "3. Confirmar con tarjeta sin fondos",
                   "event": [
                     {
                       "listen": "test",
@@ -1440,7 +1440,7 @@
                   }
                 },
                 {
-                  "name": "Pagar con otra tarjeta",
+                  "name": "4. Pagar con otra tarjeta",
                   "event": [
                     {
                       "listen": "test",
@@ -1469,7 +1469,7 @@
                   }
                 },
                 {
-                  "name": "Historial de intentos",
+                  "name": "5. Historial de intentos",
                   "event": [
                     {
                       "listen": "test",
@@ -1498,7 +1498,7 @@
               "name": "Transferencia aprobada",
               "item": [
                 {
-                  "name": "Espacio",
+                  "name": "1. Espacio",
                   "event": [
                     {
                       "listen": "test",
@@ -1536,7 +1536,7 @@
                   }
                 },
                 {
-                  "name": "Reserva",
+                  "name": "2. Reserva",
                   "event": [
                     {
                       "listen": "test",
@@ -1578,7 +1578,7 @@
                   }
                 },
                 {
-                  "name": "Confirmar",
+                  "name": "3. Confirmar",
                   "event": [
                     {
                       "listen": "test",
@@ -1615,7 +1615,7 @@
           "name": "Reporte de ocupación",
           "item": [
             {
-              "name": "Ocupación de todos los espacios",
+              "name": "1. Ocupación de todos los espacios",
               "event": [
                 {
                   "listen": "test",
@@ -1645,7 +1645,7 @@
               }
             },
             {
-              "name": "Ocupación de un espacio",
+              "name": "2. Ocupación de un espacio",
               "event": [
                 {
                   "listen": "test",
@@ -1679,7 +1679,7 @@
           "name": "Login y registro",
           "item": [
             {
-              "name": "Registro con email duplicado",
+              "name": "1. Registro con email duplicado",
               "event": [
                 {
                   "listen": "test",
@@ -1711,7 +1711,7 @@
               }
             },
             {
-              "name": "Registro con datos inválidos",
+              "name": "2. Registro con datos inválidos",
               "event": [
                 {
                   "listen": "test",
@@ -1744,7 +1744,7 @@
               }
             },
             {
-              "name": "Login con contraseña incorrecta",
+              "name": "3. Login con contraseña incorrecta",
               "event": [
                 {
                   "listen": "test",
@@ -1776,7 +1776,7 @@
               }
             },
             {
-              "name": "Login con email inexistente (mismo error)",
+              "name": "4. Login con email inexistente (mismo error)",
               "event": [
                 {
                   "listen": "test",
@@ -1808,7 +1808,7 @@
               }
             },
             {
-              "name": "Login con JSON mal formado",
+              "name": "5. Login con JSON mal formado",
               "event": [
                 {
                   "listen": "test",
@@ -1848,7 +1848,7 @@
               "name": "Permisos",
               "item": [
                 {
-                  "name": "Listar sin token",
+                  "name": "1. Listar sin token",
                   "event": [
                     {
                       "listen": "test",
@@ -1872,7 +1872,7 @@
                   }
                 },
                 {
-                  "name": "Listar con token inválido",
+                  "name": "2. Listar con token inválido",
                   "event": [
                     {
                       "listen": "test",
@@ -1902,7 +1902,7 @@
                   }
                 },
                 {
-                  "name": "Crear como USER",
+                  "name": "3. Crear como USER",
                   "event": [
                     {
                       "listen": "test",
@@ -1941,7 +1941,7 @@
                   }
                 },
                 {
-                  "name": "Eliminar como USER",
+                  "name": "4. Eliminar como USER",
                   "event": [
                     {
                       "listen": "test",
@@ -1976,7 +1976,7 @@
               "name": "Validaciones",
               "item": [
                 {
-                  "name": "Crear con datos inválidos",
+                  "name": "1. Crear con datos inválidos",
                   "event": [
                     {
                       "listen": "test",
@@ -2005,7 +2005,7 @@
                   }
                 },
                 {
-                  "name": "Crear con más de 2 decimales",
+                  "name": "2. Crear con más de 2 decimales",
                   "event": [
                     {
                       "listen": "test",
@@ -2034,7 +2034,7 @@
                   }
                 },
                 {
-                  "name": "Crear con nombre duplicado (sin distinguir mayúsculas)",
+                  "name": "3. Crear con nombre duplicado (sin distinguir mayúsculas)",
                   "event": [
                     {
                       "listen": "test",
@@ -2073,7 +2073,7 @@
                   }
                 },
                 {
-                  "name": "Crear con tipo inexistente",
+                  "name": "4. Crear con tipo inexistente",
                   "event": [
                     {
                       "listen": "test",
@@ -2102,7 +2102,7 @@
                   }
                 },
                 {
-                  "name": "Filtrar con tipo inexistente",
+                  "name": "5. Filtrar con tipo inexistente",
                   "event": [
                     {
                       "listen": "test",
@@ -2132,7 +2132,7 @@
                   }
                 },
                 {
-                  "name": "Ordenar por campo inexistente",
+                  "name": "6. Ordenar por campo inexistente",
                   "event": [
                     {
                       "listen": "test",
@@ -2162,7 +2162,7 @@
                   }
                 },
                 {
-                  "name": "Id no numérico",
+                  "name": "7. Id no numérico",
                   "event": [
                     {
                       "listen": "test",
@@ -2192,7 +2192,7 @@
                   }
                 },
                 {
-                  "name": "Espacio inexistente",
+                  "name": "8. Espacio inexistente",
                   "event": [
                     {
                       "listen": "test",
@@ -2222,7 +2222,7 @@
                   }
                 },
                 {
-                  "name": "Método no permitido",
+                  "name": "9. Método no permitido",
                   "event": [
                     {
                       "listen": "test",
@@ -2247,7 +2247,7 @@
               "name": "Trazabilidad",
               "item": [
                 {
-                  "name": "X-Correlation-Id propio se devuelve",
+                  "name": "1. X-Correlation-Id propio se devuelve",
                   "event": [
                     {
                       "listen": "test",
@@ -2288,7 +2288,7 @@
               "name": "Borrado lógico",
               "item": [
                 {
-                  "name": "Eliminar espacio (ADMIN)",
+                  "name": "1. Eliminar espacio (ADMIN)",
                   "event": [
                     {
                       "listen": "test",
@@ -2307,7 +2307,7 @@
                   }
                 },
                 {
-                  "name": "Obtener tras eliminar",
+                  "name": "2. Obtener tras eliminar",
                   "event": [
                     {
                       "listen": "test",
@@ -2337,7 +2337,7 @@
                   }
                 },
                 {
-                  "name": "Recrear con el mismo nombre",
+                  "name": "3. Recrear con el mismo nombre",
                   "event": [
                     {
                       "listen": "test",
@@ -2374,7 +2374,7 @@
           "description": "El mismo token gana permisos en cuanto cambia su rol, sin volver a hacer login.",
           "item": [
             {
-              "name": "Staff lee espacios (SPACE_READ)",
+              "name": "1. Staff lee espacios (SPACE_READ)",
               "event": [
                 {
                   "listen": "test",
@@ -2403,7 +2403,7 @@
               }
             },
             {
-              "name": "Staff NO puede crear espacios",
+              "name": "2. Staff NO puede crear espacios",
               "event": [
                 {
                   "listen": "test",
@@ -2451,7 +2451,7 @@
               }
             },
             {
-              "name": "Añadir SPACE_WRITE al rol",
+              "name": "3. Añadir SPACE_WRITE al rol",
               "event": [
                 {
                   "listen": "test",
@@ -2480,7 +2480,7 @@
               }
             },
             {
-              "name": "Staff ya puede crear (mismo token)",
+              "name": "4. Staff ya puede crear (mismo token)",
               "event": [
                 {
                   "listen": "test",
@@ -2532,7 +2532,7 @@
           "name": "Bloqueo de cuentas",
           "item": [
             {
-              "name": "Bloquear usuario",
+              "name": "1. Bloquear usuario",
               "event": [
                 {
                   "listen": "test",
@@ -2561,7 +2561,7 @@
               }
             },
             {
-              "name": "Token del bloqueado deja de valer",
+              "name": "2. Token del bloqueado deja de valer",
               "event": [
                 {
                   "listen": "test",
@@ -2591,7 +2591,7 @@
               }
             },
             {
-              "name": "Login del bloqueado",
+              "name": "3. Login del bloqueado",
               "event": [
                 {
                   "listen": "test",
@@ -2623,7 +2623,7 @@
               }
             },
             {
-              "name": "Reactivar usuario",
+              "name": "4. Reactivar usuario",
               "event": [
                 {
                   "listen": "test",
@@ -2660,7 +2660,7 @@
               "name": "Validaciones",
               "item": [
                 {
-                  "name": "Crear rol duplicado",
+                  "name": "1. Crear rol duplicado",
                   "event": [
                     {
                       "listen": "test",
@@ -2689,7 +2689,7 @@
                   }
                 },
                 {
-                  "name": "Crear rol con permiso inexistente",
+                  "name": "2. Crear rol con permiso inexistente",
                   "event": [
                     {
                       "listen": "test",
@@ -2718,7 +2718,7 @@
                   }
                 },
                 {
-                  "name": "Crear rol con nombre inválido",
+                  "name": "3. Crear rol con nombre inválido",
                   "event": [
                     {
                       "listen": "test",
@@ -2747,7 +2747,7 @@
                   }
                 },
                 {
-                  "name": "Quitar RBAC_MANAGE al ADMIN",
+                  "name": "4. Quitar RBAC_MANAGE al ADMIN",
                   "event": [
                     {
                       "listen": "test",
@@ -2776,7 +2776,7 @@
                   }
                 },
                 {
-                  "name": "Crear usuario con rol inexistente",
+                  "name": "5. Crear usuario con rol inexistente",
                   "event": [
                     {
                       "listen": "test",
@@ -2805,7 +2805,7 @@
                   }
                 },
                 {
-                  "name": "Crear usuario con email existente",
+                  "name": "6. Crear usuario con email existente",
                   "event": [
                     {
                       "listen": "test",
@@ -2834,7 +2834,7 @@
                   }
                 },
                 {
-                  "name": "Admin se bloquea a sí mismo",
+                  "name": "7. Admin se bloquea a sí mismo",
                   "event": [
                     {
                       "listen": "test",
@@ -2863,7 +2863,7 @@
                   }
                 },
                 {
-                  "name": "Usuario inexistente",
+                  "name": "8. Usuario inexistente",
                   "event": [
                     {
                       "listen": "test",
@@ -2888,7 +2888,7 @@
               "name": "Permisos",
               "item": [
                 {
-                  "name": "USER lista usuarios",
+                  "name": "1. USER lista usuarios",
                   "event": [
                     {
                       "listen": "test",
@@ -2918,7 +2918,7 @@
                   }
                 },
                 {
-                  "name": "USER lista roles",
+                  "name": "2. USER lista roles",
                   "event": [
                     {
                       "listen": "test",
@@ -2948,7 +2948,7 @@
                   }
                 },
                 {
-                  "name": "Sin token",
+                  "name": "3. Sin token",
                   "event": [
                     {
                       "listen": "test",
@@ -2971,7 +2971,7 @@
                   }
                 },
                 {
-                  "name": "Mi perfil sin token",
+                  "name": "4. Mi perfil sin token",
                   "event": [
                     {
                       "listen": "test",
@@ -3004,7 +3004,7 @@
               "name": "Validaciones",
               "item": [
                 {
-                  "name": "Horario solapado",
+                  "name": "1. Horario solapado",
                   "event": [
                     {
                       "listen": "test",
@@ -3056,7 +3056,7 @@
                   }
                 },
                 {
-                  "name": "Misma Idempotency-Key con otros datos",
+                  "name": "2. Misma Idempotency-Key con otros datos",
                   "event": [
                     {
                       "listen": "test",
@@ -3099,7 +3099,7 @@
                   }
                 },
                 {
-                  "name": "Inicio en el pasado",
+                  "name": "3. Inicio en el pasado",
                   "event": [
                     {
                       "listen": "test",
@@ -3151,7 +3151,7 @@
                   }
                 },
                 {
-                  "name": "Más de 12 horas",
+                  "name": "4. Más de 12 horas",
                   "event": [
                     {
                       "listen": "test",
@@ -3203,7 +3203,7 @@
                   }
                 },
                 {
-                  "name": "Fin antes del inicio",
+                  "name": "5. Fin antes del inicio",
                   "event": [
                     {
                       "listen": "test",
@@ -3255,7 +3255,7 @@
                   }
                 },
                 {
-                  "name": "Sin Idempotency-Key",
+                  "name": "6. Sin Idempotency-Key",
                   "event": [
                     {
                       "listen": "test",
@@ -3294,7 +3294,7 @@
                   }
                 },
                 {
-                  "name": "Idempotency-Key inválida",
+                  "name": "7. Idempotency-Key inválida",
                   "event": [
                     {
                       "listen": "test",
@@ -3337,7 +3337,7 @@
                   }
                 },
                 {
-                  "name": "Espacio inexistente",
+                  "name": "8. Espacio inexistente",
                   "event": [
                     {
                       "listen": "test",
@@ -3394,7 +3394,7 @@
               "name": "Visibilidad y permisos",
               "item": [
                 {
-                  "name": "ADMIN reserva para sí",
+                  "name": "1. ADMIN reserva para sí",
                   "event": [
                     {
                       "listen": "test",
@@ -3436,7 +3436,7 @@
                   }
                 },
                 {
-                  "name": "USER no ve la reserva de otro",
+                  "name": "2. USER no ve la reserva de otro",
                   "event": [
                     {
                       "listen": "test",
@@ -3466,7 +3466,7 @@
                   }
                 },
                 {
-                  "name": "USER no cancela la reserva de otro",
+                  "name": "3. USER no cancela la reserva de otro",
                   "event": [
                     {
                       "listen": "test",
@@ -3496,7 +3496,7 @@
                   }
                 },
                 {
-                  "name": "ADMIN ve todas (READ_ALL)",
+                  "name": "4. ADMIN ve todas (READ_ALL)",
                   "event": [
                     {
                       "listen": "test",
@@ -3516,7 +3516,7 @@
                   }
                 },
                 {
-                  "name": "ADMIN ve la reserva del USER",
+                  "name": "5. ADMIN ve la reserva del USER",
                   "event": [
                     {
                       "listen": "test",
@@ -3535,7 +3535,7 @@
                   }
                 },
                 {
-                  "name": "Sin token",
+                  "name": "6. Sin token",
                   "event": [
                     {
                       "listen": "test",
@@ -3564,7 +3564,7 @@
               "name": "Cancelación",
               "item": [
                 {
-                  "name": "Cancelar mi reserva",
+                  "name": "1. Cancelar mi reserva",
                   "event": [
                     {
                       "listen": "test",
@@ -3594,7 +3594,7 @@
                   }
                 },
                 {
-                  "name": "Cancelar otra vez",
+                  "name": "2. Cancelar otra vez",
                   "event": [
                     {
                       "listen": "test",
@@ -3624,7 +3624,7 @@
                   }
                 },
                 {
-                  "name": "El horario quedó libre",
+                  "name": "3. El horario quedó libre",
                   "event": [
                     {
                       "listen": "test",
@@ -3675,7 +3675,7 @@
                   }
                 },
                 {
-                  "name": "ADMIN cancela la reserva de otro (MANAGE_ALL)",
+                  "name": "4. ADMIN cancela la reserva de otro (MANAGE_ALL)",
                   "event": [
                     {
                       "listen": "test",
@@ -3704,7 +3704,7 @@
               "name": "Tarjeta vencida",
               "item": [
                 {
-                  "name": "Espacio",
+                  "name": "1. Espacio",
                   "event": [
                     {
                       "listen": "test",
@@ -3742,7 +3742,7 @@
                   }
                 },
                 {
-                  "name": "Reserva",
+                  "name": "2. Reserva",
                   "event": [
                     {
                       "listen": "test",
@@ -3784,7 +3784,7 @@
                   }
                 },
                 {
-                  "name": "Confirmar",
+                  "name": "3. Confirmar",
                   "event": [
                     {
                       "listen": "test",
@@ -3818,7 +3818,7 @@
               "name": "Cuenta no aceptada",
               "item": [
                 {
-                  "name": "Espacio",
+                  "name": "1. Espacio",
                   "event": [
                     {
                       "listen": "test",
@@ -3856,7 +3856,7 @@
                   }
                 },
                 {
-                  "name": "Reserva",
+                  "name": "2. Reserva",
                   "event": [
                     {
                       "listen": "test",
@@ -3898,7 +3898,7 @@
                   }
                 },
                 {
-                  "name": "Confirmar",
+                  "name": "3. Confirmar",
                   "event": [
                     {
                       "listen": "test",
@@ -3932,7 +3932,7 @@
               "name": "Método de pago inválido",
               "item": [
                 {
-                  "name": "Sin método de pago",
+                  "name": "1. Sin método de pago",
                   "event": [
                     {
                       "listen": "test",
@@ -3961,7 +3961,7 @@
                   }
                 },
                 {
-                  "name": "Número de tarjeta en vez de token",
+                  "name": "2. Número de tarjeta en vez de token",
                   "event": [
                     {
                       "listen": "test",
@@ -3989,7 +3989,7 @@
                   }
                 },
                 {
-                  "name": "Tipo de pago desconocido",
+                  "name": "3. Tipo de pago desconocido",
                   "event": [
                     {
                       "listen": "test",
@@ -4022,7 +4022,7 @@
               "name": "Permisos",
               "item": [
                 {
-                  "name": "USER confirma la reserva de otro",
+                  "name": "1. USER confirma la reserva de otro",
                   "event": [
                     {
                       "listen": "test",
@@ -4060,7 +4060,7 @@
                   }
                 },
                 {
-                  "name": "Sin token",
+                  "name": "2. Sin token",
                   "event": [
                     {
                       "listen": "test",
@@ -4101,7 +4101,7 @@
               "name": "Proveedor con error (503)",
               "item": [
                 {
-                  "name": "Espacio con tarifa 555",
+                  "name": "1. Espacio con tarifa 555",
                   "event": [
                     {
                       "listen": "test",
@@ -4139,7 +4139,7 @@
                   }
                 },
                 {
-                  "name": "Reserva de 1h (importe 555)",
+                  "name": "2. Reserva de 1h (importe 555)",
                   "event": [
                     {
                       "listen": "test",
@@ -4181,7 +4181,7 @@
                   }
                 },
                 {
-                  "name": "Confirmar",
+                  "name": "3. Confirmar",
                   "event": [
                     {
                       "listen": "test",
@@ -4216,7 +4216,7 @@
               "name": "Proveedor lento (timeout)",
               "item": [
                 {
-                  "name": "Espacio con tarifa 333",
+                  "name": "1. Espacio con tarifa 333",
                   "event": [
                     {
                       "listen": "test",
@@ -4254,7 +4254,7 @@
                   }
                 },
                 {
-                  "name": "Reserva de 1h (importe 333)",
+                  "name": "2. Reserva de 1h (importe 333)",
                   "event": [
                     {
                       "listen": "test",
@@ -4296,7 +4296,7 @@
                   }
                 },
                 {
-                  "name": "Confirmar",
+                  "name": "3. Confirmar",
                   "event": [
                     {
                       "listen": "test",
@@ -4337,7 +4337,7 @@
               "name": "Validaciones",
               "item": [
                 {
-                  "name": "Rango invertido",
+                  "name": "1. Rango invertido",
                   "event": [
                     {
                       "listen": "test",
@@ -4356,7 +4356,7 @@
                   }
                 },
                 {
-                  "name": "Sin fechas",
+                  "name": "2. Sin fechas",
                   "event": [
                     {
                       "listen": "test",
@@ -4375,7 +4375,7 @@
                   }
                 },
                 {
-                  "name": "Espacio inexistente",
+                  "name": "3. Espacio inexistente",
                   "event": [
                     {
                       "listen": "test",
@@ -4399,7 +4399,7 @@
               "name": "Permisos",
               "item": [
                 {
-                  "name": "USER sin REPORT_READ",
+                  "name": "1. USER sin REPORT_READ",
                   "event": [
                     {
                       "listen": "test",
@@ -4428,7 +4428,7 @@
                   }
                 },
                 {
-                  "name": "Sin token",
+                  "name": "2. Sin token",
                   "event": [
                     {
                       "listen": "test",
@@ -4467,7 +4467,7 @@
               "name": "Públicos",
               "item": [
                 {
-                  "name": "Health (sin detalle)",
+                  "name": "1. Health (sin detalle)",
                   "event": [
                     {
                       "listen": "test",
@@ -4491,7 +4491,7 @@
                   }
                 },
                 {
-                  "name": "Info",
+                  "name": "2. Info",
                   "event": [
                     {
                       "listen": "test",
@@ -4519,7 +4519,7 @@
               "name": "ADMIN",
               "item": [
                 {
-                  "name": "Health con detalle",
+                  "name": "1. Health con detalle",
                   "event": [
                     {
                       "listen": "test",
@@ -4539,7 +4539,7 @@
                   }
                 },
                 {
-                  "name": "Métricas disponibles",
+                  "name": "2. Métricas disponibles",
                   "event": [
                     {
                       "listen": "test",
@@ -4559,7 +4559,7 @@
                   }
                 },
                 {
-                  "name": "Métrica: peticiones HTTP",
+                  "name": "3. Métrica: peticiones HTTP",
                   "event": [
                     {
                       "listen": "test",
@@ -4578,7 +4578,7 @@
                   }
                 },
                 {
-                  "name": "Métrica: memoria JVM",
+                  "name": "4. Métrica: memoria JVM",
                   "event": [
                     {
                       "listen": "test",
@@ -4597,7 +4597,7 @@
                   }
                 },
                 {
-                  "name": "Circuit breakers",
+                  "name": "5. Circuit breakers",
                   "event": [
                     {
                       "listen": "test",
@@ -4617,7 +4617,7 @@
                   }
                 },
                 {
-                  "name": "Métrica de pagos",
+                  "name": "6. Métrica de pagos",
                   "event": [
                     {
                       "listen": "test",
@@ -4637,7 +4637,7 @@
                   }
                 },
                 {
-                  "name": "Reintentos",
+                  "name": "7. Reintentos",
                   "event": [
                     {
                       "listen": "test",
@@ -4662,7 +4662,7 @@
               "name": "Seguridad",
               "item": [
                 {
-                  "name": "Métricas como USER",
+                  "name": "1. Métricas como USER",
                   "event": [
                     {
                       "listen": "test",
@@ -4692,7 +4692,7 @@
                   }
                 },
                 {
-                  "name": "Métricas sin token",
+                  "name": "2. Métricas sin token",
                   "event": [
                     {
                       "listen": "test",
@@ -4722,7 +4722,7 @@
           "name": "Documentación",
           "item": [
             {
-              "name": "Swagger UI",
+              "name": "1. Swagger UI",
               "event": [
                 {
                   "listen": "test",
@@ -4744,7 +4744,7 @@
               }
             },
             {
-              "name": "OpenAPI JSON",
+              "name": "2. OpenAPI JSON",
               "event": [
                 {
                   "listen": "test",
