@@ -526,6 +526,28 @@
             "header": [],
             "url": "{{baseUrl}}/api/v1/reports/occupancy?from={{e2eDay}}&to={{e2eDay}}&spaceId={{e2eSpaceId}}"
           }
+        },
+        {
+          "name": "7. Un día sin reservas da 0 %",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const s = pm.response.json().spaces[0];",
+                  "pm.test('sin reservas', () => pm.expect(s.confirmedReservations).to.eql(0));",
+                  "pm.test('0 %', () => pm.expect(s.occupancyPercent).to.eql(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/reports/occupancy?from=2030-01-01&to=2030-01-01&spaceId={{e2eSpaceId}}"
+          }
         }
       ],
       "description": "El recorrido normal de punta a punta: el admin crea un espacio, un usuario lo reserva y lo paga, y el admin ve la ocupación. La notificación de la reserva confirmada sale en el log de la app (\"Notificación enviada a ...\")."
